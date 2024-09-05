@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Histogram Equalization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Image Processing App</h1>
+    </header>
+
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <a href="/">Home</a>
+        <a href="#">Other Feature</a>
+        <!-- Add more links as needed -->
+    </div>
+
+    <div class="main-content">
+        <h2>Upload Image</h2>
+        <form action="/" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept="image/*">
+            <button type="submit">Upload</button>
+        </form>
+
+        {% if original_image %}
+            <div class="container">
+                <div class="row">
+                    <div class="column">
+                        <h3>Original Image</h3>
+                        <img src="{{ url_for('static', filename=original_image) }}" alt="Original Image">
+                    </div>
+                    <div class="column">
+                        <h3>Original Histogram</h3>
+                        <img src="{{ original_hist }}" alt="Original Histogram">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="column">
+                        <h3>Equalized Image</h3>
+                        <img src="{{ equalized_image }}" alt="Equalized Image">
+                    </div>
+                    <div class="column">
+                        <h3>Equalized Histogram</h3>
+                        <img src="{{ equalized_hist }}" alt="Equalized Histogram">
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
