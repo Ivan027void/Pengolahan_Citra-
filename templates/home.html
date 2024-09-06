@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - Image Processing App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <button> <a href="/">Home</a></button>
+            <button> <a href="/about">About Us</a></button>
+            <div class="dropdown">
+                <button class="dropbtn">Features</button>
+                <div class="dropdown-content">
+                    <a href="/Histogram_Equal">Histogram Equalization</a>
+                    <!-- Add other feature links here -->
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="card-container">
+        <div class="card">
+            <h3>Histogram Equalization</h3>
+            <p>Enhance image contrast using histogram equalization.</p>
+            <a href="/Histogram_Equal" class="btn">Learn More</a>
+        </div>
+        <div class="card">
+            <h3>Feature 2</h3>
+            <p>Another exciting feature coming soon.</p>
+            <a href="#" class="btn">Coming Soon</a>
+        </div>
+        <div class="card">
+            <h3>Feature 3</h3>
+            <p>Stay tuned for more updates!</p>
+            <a href="#" class="btn">Coming Soon</a>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+    </footer>
+</body>
+</html>
