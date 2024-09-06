@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Histogram Equalization</title>
+    <title>Kelompok 2</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
@@ -14,18 +14,26 @@
 
     <div class="sidebar">
         <h2>Menu</h2>
-        <a href="/">Home</a>
+        <a href="/">Histogram Equalization</a>
         <a href="#">Other Feature</a>
         <!-- Add more links as needed -->
     </div>
 
     <div class="main-content">
-        <h2>Upload Image</h2>
+        <h2>Histogram Equalization</h2>
         <form action="/" method="post" enctype="multipart/form-data">
+            <label for="file">Upload Image:</label>
             <input type="file" name="file" accept="image/*">
+            
+            <p>Choose Image Mode:</p>
+            <input type="radio" id="rgb" name="color_mode" value="rgb" checked>
+            <label for="rgb">RGB</label><br>
+            <input type="radio" id="grayscale" name="color_mode" value="grayscale">
+            <label for="grayscale">Grayscale</label><br>
+            
             <button type="submit">Upload</button>
         </form>
-
+        
         {% if original_image %}
             <div class="container">
                 <div class="row">
@@ -52,4 +60,7 @@
         {% endif %}
     </div>
 </body>
+<footer>
+    <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+</footer>
 </html>
