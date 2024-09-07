@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us - Image Processing App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <button><a href="/">Home</a></button>
+            <button><a href="/about">About Us</a></button>
+            <div class="dropdown">
+                <button class="dropbtn">Features</button>
+                <div class="dropdown-content">
+                    <a href="/Histogram_Equal">Histogram Equalization</a>
+                    <a href="/Face_Blurring">Face Blurring</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <section class="about-section">
+        <h2>About Us</h2>
+        <p>Welcome to the Image Processing App! Our goal is to provide a suite of powerful and easy-to-use image editing tools that help users enhance their photos effortlessly. Whether you're a professional photographer or just looking to improve your personal images, our features are designed to make your life easier.</p>
+        
+        <p>We are a small team of developers passionate about creating accessible software that puts advanced image processing capabilities in everyone's hands. From basic adjustments to more advanced techniques, we're committed to expanding our offerings and continuously improving our app.</p>
+        
+        <p>Stay tuned for more updates and new features as we strive to become your go-to tool for all things image editing!</p>
+
+        <p>If you have any questions or suggestions, feel free to <a href="mailto:#">contact us</a>. We'd love to hear from you!</p>
+    </section>
+
+    <footer class="footer">
+        <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+    </footer>
+</body>
+</html>

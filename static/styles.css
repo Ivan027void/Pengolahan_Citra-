@@ -123,6 +123,9 @@ header {
     margin-top: 10px;
     display: inline-block;
 }
+.card .btn:hover {
+    background-color: #0056b3;
+}
 
 
 /* Main content section */
@@ -245,4 +248,54 @@ footer {
     position: relative;
     bottom: 0;
     width: 100%;
+}
+
+/* Image Blur Section Styling */
+.blur-control {
+    margin: 10px 0;
+    text-align: center;
+}
+
+#blur_level_display {
+    display: block;
+    margin-top: 5px;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+
+/* About Us Section Styling */
+.about-section {
+    padding: 40px 20px; /* Add space around the section */
+    background-color: #ffffff; /* White background to contrast with the body */
+    border-radius: 10px; /* Rounded corners for the section */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+    margin: 20px auto; /* Center the section with some margin */
+    max-width: 800px; /* Limit the maximum width of the section */
+    text-align: left; /* Left-align text for readability */
+    color: #333; /* Darker text color for readability */
+    line-height: 1.6; /* Space out lines for better readability */
+}
+
+/* About Us Section Headings */
+.about-section h2 {
+    color: #4CAF50; /* Match the brand color for consistency */
+    margin-bottom: 20px; /* Space below the heading */
+    text-align: center; /* Center the heading */
+}
+
+/* About Us Section Paragraphs */
+.about-section p {
+    margin-bottom: 15px; /* Space between paragraphs */
+}
+
+/* Links within the About Us Section */
+.about-section a {
+    color: #4CAF50; /* Match the brand color */
+    text-decoration: none; /* Remove underline */
+    font-weight: bold; /* Bold links for emphasis */
+}
+
+.about-section a:hover {
+    text-decoration: underline; /* Underline on hover for links */
 }

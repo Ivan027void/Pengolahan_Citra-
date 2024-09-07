@@ -15,6 +15,7 @@
                     <button class="dropbtn">Features</button>
                     <div class="dropdown-content">
                         <a href="/Histogram_Equal">Histogram Equalization</a>
+                        <a href="/Face_Blurring">Face Blurring</a>
                         <!-- Add other feature links here -->
                     </div>
                 </div>
@@ -47,7 +48,7 @@
         <div class="output-container">
             <div class="output-image">
                 <h3>Original Image</h3>
-                <img src="{{ url_for('static', filename=original_image) }}" alt="Original Image">
+                <img src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}" alt="Original Image" width="400">
             </div>
             <div class="output-image">
                 <h3>Original Histogram</h3>
