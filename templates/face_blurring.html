@@ -1,94 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Face Blurring</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body>
     <header>
-        <nav class="navbar">
-            <button><a href="/">Home</a></button>
-            <button><a href="/about">About Us</a></button>
-            <div class="dropdown">
-                <button class="dropbtn">Features</button>
-                <div class="dropdown-content">
-                    <a href="/Histogram_Equal">Histogram Equalization</a>
-                    <a href="/Face_Blurring">Face Blurring</a>
-                    <a href="/Face_Detection">Face Detection</a>
-                </div>
-            </div>
-        </nav>
+      <nav class="navbar">
+        <button><a href="/">Home</a></button>
+        <button><a href="/about">About Us</a></button>
+        <div class="dropdown">
+          <button class="dropbtn">Features</button>
+          <div class="dropdown-content">
+            <a href="/Histogram_Equal">Histogram Equalization</a>
+            <a href="/Face_Blurring">Face Blurring</a>
+            <a href="/Face_Detection">Face Detection</a>
+            <a href="/Edge_Detection">Edge Detection</a>
+          </div>
+        </div>
+      </nav>
     </header>
 
     <section class="content">
-        <div class="centered-title">
-            <h2>Face Blurring</h2>
-        </div>
+      <div class="centered-title">
+        <h2>Face Blurring</h2>
+      </div>
 
-        <div class="form-container">
-            <form action="/Face_Blurring" method="post" enctype="multipart/form-data">
-                <label for="file">Upload Image:</label>
-                <input type="file" name="file" id="file" required>
-                <br><br>
-                <button type="submit">Upload Image</button>
-            </form>
-        </div>
+      <div class="form-container">
+        <form
+          action="/Face_Blurring"
+          method="post"
+          enctype="multipart/form-data"
+        >
+          <label for="file">Upload Image:</label>
+          <input type="file" name="file" id="file" required />
+          <br /><br />
+          <button type="submit">Upload Image</button>
+        </form>
+      </div>
 
-        {% if original_image %}
-        <div class="blur-control">
-            <label for="blur_level">Blurring Level:</label>
-            <input type="range" id="blur_level" name="blur_level" min="1" max="51" step="2" value="{{ blur_level }}" oninput="updateBlur('{{ original_image }}'); updateDisplay();">
-            <span id="blur-level-display">{{ blur_level }}</span>
-            <br>
-            <div class="output-container">
-                <div class="output-image">
-                    <h3>Original Image</h3>
-                    <img src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}" alt="Original Image" width="400">
-                </div>
-                <div class="output-image">
-                    <h3>Blurred Image</h3>
-                    <img id="blurred-image" src="{{ blurred_image }}" alt="Blurred Image" width="400">
-                </div>
-            </div>
+      {% if original_image %}
+      <div class="blur-control">
+        <label for="blur_level">Blurring Level:</label>
+        <input
+          type="range"
+          id="blur_level"
+          name="blur_level"
+          min="1"
+          max="51"
+          step="2"
+          value="{{ blur_level }}"
+          oninput="updateBlur('{{ original_image }}'); updateDisplay();"
+        />
+        <span id="blur-level-display">{{ blur_level }}</span>
+        <br />
+        <div class="output-container">
+          <div class="output-image">
+            <h3>Original Image</h3>
+            <img
+              src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}"
+              alt="Original Image"
+              width="400"
+            />
+          </div>
+          <div class="output-image">
+            <h3>Blurred Image</h3>
+            <img
+              id="blurred-image"
+              src="{{ blurred_image }}"
+              alt="Blurred Image"
+              width="400"
+            />
+          </div>
         </div>
-        {% endif %}
-
+      </div>
+      {% endif %}
     </section>
 
     <footer class="footer">
-        <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+      <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
     </footer>
 
     <script>
-        function updateBlur(filepath) {
-            const blurLevel = document.getElementById('blur_level').value;
+      function updateBlur(filepath) {
+        const blurLevel = document.getElementById("blur_level").value;
 
-            fetch('/update_blur', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ filepath: filepath, blur_level: blurLevel })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('blurred-image').src = data.blurred_image;
-            })
-            .catch(error => console.error('Error updating blur level:', error));
-        }
+        fetch("/update_blur", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ filepath: filepath, blur_level: blurLevel }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("blurred-image").src = data.blurred_image;
+          })
+          .catch((error) => console.error("Error updating blur level:", error));
+      }
 
-        function updateDisplay() {
-            const blurLevel = document.getElementById('blur_level').value;
-            document.getElementById('blur-level-display').textContent = blurLevel;
-        }
+      function updateDisplay() {
+        const blurLevel = document.getElementById("blur_level").value;
+        document.getElementById("blur-level-display").textContent = blurLevel;
+      }
 
-        // Initialize the blurred image when the page loads
-        window.addEventListener('load', () => {
-            updateBlur('{{ original_image }}');
-            updateDisplay(); // Initialize display value
-        });
+      // Initialize the blurred image when the page loads
+      window.addEventListener("load", () => {
+        updateBlur("{{ original_image }}");
+        updateDisplay(); // Initialize display value
+      });
     </script>
-</body>
+  </body>
 </html>

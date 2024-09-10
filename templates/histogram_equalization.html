@@ -1,74 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Histogram Equalization</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body>
     <header>
-        <nav class="navbar">
-                <button> <a href="/">Home</a></button>
-                <button> <a href="/about">About Us</a></button>
-                <div class="dropdown">
-                    <button class="dropbtn">Features</button>
-                    <div class="dropdown-content">
-                        <a href="/Histogram_Equal">Histogram Equalization</a>
-                        <a href="/Face_Blurring">Face Blurring</a>
-                        <a href="/Face_Detection">Face Detection</a>
-                        <!-- Add other feature links here -->
-                    </div>
-                </div>
-        </nav>
+      <nav class="navbar">
+        <button><a href="/">Home</a></button>
+        <button><a href="/about">About Us</a></button>
+        <div class="dropdown">
+          <button class="dropbtn">Features</button>
+          <div class="dropdown-content">
+            <a href="/Histogram_Equal">Histogram Equalization</a>
+            <a href="/Face_Blurring">Face Blurring</a>
+            <a href="/Face_Detection">Face Detection</a>
+            <a href="/Edge_Detection">Edge Detection</a>
+            <!-- Add other feature links here -->
+          </div>
+        </div>
+      </nav>
     </header>
 
     <section class="content">
-        <div class="centered-title">
-            <h2>Histogram Equalization</h2>
-        </div>
+      <div class="centered-title">
+        <h2>Histogram Equalization</h2>
+      </div>
 
-        <div class="form-container">
-            <form action="/Histogram_Equal" method="post" enctype="multipart/form-data">
-                <label for="file">Upload Image:</label>
-                <input type="file" name="file" accept="image/*">
-                
-                <p>Choose Image Mode:</p>
-                <div class="radio-container">
-                    <input type="radio" id="rgb" name="color_mode" value="rgb" checked>
-                    <label for="rgb">RGB</label>
-                    <input type="radio" id="grayscale" name="color_mode" value="grayscale">
-                    <label for="grayscale">Grayscale</label>
-                </div>
-                
-                <button type="submit" class="btn">Upload</button>
-            </form>
-        </div>
+      <div class="form-container">
+        <form
+          action="/Histogram_Equal"
+          method="post"
+          enctype="multipart/form-data"
+        >
+          <label for="file">Upload Image:</label>
+          <input type="file" name="file" accept="image/*" />
 
-        {% if original_image %}
-        <div class="output-container">
-            <div class="output-image">
-                <h3>Original Image</h3>
-                <img src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}" alt="Original Image" width="400">
-            </div>
-            <div class="output-image">
-                <h3>Original Histogram</h3>
-                <img src="{{ original_hist }}" alt="Original Histogram">
-            </div>
-            <div class="output-image">
-                <h3>Equalized Image</h3>
-                <img src="{{ equalized_image }}" alt="Equalized Image">
-            </div>
-            <div class="output-image">
-                <h3>Equalized Histogram</h3>
-                <img src="{{ equalized_hist }}" alt="Equalized Histogram">
-            </div>
+          <p>Choose Image Mode:</p>
+          <div class="radio-container">
+            <input
+              type="radio"
+              id="rgb"
+              name="color_mode"
+              value="rgb"
+              checked
+            />
+            <label for="rgb">RGB</label>
+            <input
+              type="radio"
+              id="grayscale"
+              name="color_mode"
+              value="grayscale"
+            />
+            <label for="grayscale">Grayscale</label>
+          </div>
+
+          <button type="submit" class="btn">Upload</button>
+        </form>
+      </div>
+
+      {% if original_image %}
+      <div class="output-container">
+        <div class="output-image">
+          <h3>Original Image</h3>
+          <img
+            src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}"
+            alt="Original Image"
+            width="400"
+          />
         </div>
-        {% endif %}
+        <div class="output-image">
+          <h3>Original Histogram</h3>
+          <img src="{{ original_hist }}" alt="Original Histogram" />
+        </div>
+        <div class="output-image">
+          <h3>Equalized Image</h3>
+          <img src="{{ equalized_image }}" alt="Equalized Image" />
+        </div>
+        <div class="output-image">
+          <h3>Equalized Histogram</h3>
+          <img src="{{ equalized_hist }}" alt="Equalized Histogram" />
+        </div>
+      </div>
+      {% endif %}
     </section>
 
     <footer class="footer">
-        <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+      <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
     </footer>
-</body>
+  </body>
 </html>
