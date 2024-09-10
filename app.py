@@ -5,6 +5,7 @@ import cv2
 from io import BytesIO
 import base64
 from utils import save_uploaded_file, get_image_url  # Import utility functions
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -20,6 +21,17 @@ blur_levels = [5, 15, 25, 35, 45]
 
 # Load OpenCV's pre-trained face detector
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+# Utility function to save the uploaded file
+def save_uploaded_file(file, upload_folder):
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(upload_folder, filename)
+    file.save(filepath)
+    return filename
+
+# Utility function to get image URL for rendering
+def get_image_url(filename):
+    return f'/static/uploads/{filename}'
 
 # Home route
 @app.route('/')
@@ -70,6 +82,49 @@ def histogram_equalization_page():
                                    equalized_hist=equalized_hist,
                                    color_mode=color_mode)
     return render_template('histogram_equalization.html')
+
+
+# Face Detection route
+@app.route('/Face_Detection', methods=['GET', 'POST'])
+def face_detection_page():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            return redirect(request.url)
+        if file:
+            # Save the uploaded image file
+            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            # Read the image
+            image = cv2.imread(filepath)
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+            # Detect faces using Haar Cascade
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
+
+            # Draw rectangles around the faces and enhance accuracy by tweaking parameters
+            for (x, y, w, h) in faces:
+                cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+            # Count the number of detected faces
+            face_count = len(faces)
+
+            # Convert the processed image with rectangles to base64 for rendering in HTML
+            _, buffer = cv2.imencode('.png', image)
+            face_detected_image_data = base64.b64encode(buffer).decode('ascii')
+
+            # Render the template with the original image, processed image, and face count
+            return render_template('face_detection.html',
+                                   original_image=get_image_url(filename),
+                                   face_detected_image=f"data:image/png;base64,{face_detected_image_data}",
+                                   face_count=face_count)
+
+    # Render the face_detection.html template for GET requests
+    return render_template('face_detection.html')
+
 
 # Face Blurring route
 @app.route('/Face_Blurring', methods=['GET', 'POST'])
