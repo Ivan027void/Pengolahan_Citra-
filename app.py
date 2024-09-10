@@ -176,6 +176,63 @@ def update_blur():
 
     return jsonify({'blurred_image': f"data:image/png;base64,{blurred_image_data}"})
 
+# Edge Detection route
+@app.route('/Edge_Detection', methods=['GET', 'POST'])
+def edge_detection_page():
+    if request.method == 'POST':
+        if 'file' not in request.files or 'detection_method' not in request.form:
+            return redirect(request.url)
+        file = request.files['file']
+        detection_method = request.form['detection_method']  # Sobel, Canny, Prewitt, or Laplacian
+        if file.filename == '':
+            return redirect(request.url)
+        if file:
+            # Save file using utility function
+            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            # Read image
+            image = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
+
+            # Apply the selected edge detection method
+            if detection_method == 'sobel':
+                edges = apply_sobel(image)
+            elif detection_method == 'canny':
+                edges = cv2.Canny(image, 100, 200)
+            elif detection_method == 'prewitt':
+                edges = apply_prewitt(image)
+            elif detection_method == 'laplacian':
+                edges = cv2.Laplacian(image, cv2.CV_64F)
+                edges = cv2.convertScaleAbs(edges)  # Convert back to uint8
+
+            # Convert edge-detected image to base64 to display on HTML
+            _, buffer = cv2.imencode('.png', edges)
+            edge_image_data = base64.b64encode(buffer).decode('ascii')
+
+            return render_template('edge_detection.html',
+                                   original_image=get_image_url(filename),
+                                   edge_detected_image=f"data:image/png;base64,{edge_image_data}",
+                                   detection_method=detection_method)
+    return render_template('edge_detection.html')
+
+# Utility function for Sobel edge detection
+def apply_sobel(image):
+    grad_x = cv2.Sobel(image, cv2.CV_64F, 1, 0, ksize=3)
+    grad_y = cv2.Sobel(image, cv2.CV_64F, 0, 1, ksize=3)
+    grad_x = cv2.convertScaleAbs(grad_x)
+    grad_y = cv2.convertScaleAbs(grad_y)
+    sobel = cv2.addWeighted(grad_x, 0.5, grad_y, 0.5, 0)
+    return sobel
+
+# Utility function for Prewitt edge detection
+def apply_prewitt(image):
+    kernelx = cv2.getDerivKernels(1, 0, 3, normalize=True)[0]
+    kernely = cv2.getDerivKernels(0, 1, 3, normalize=True)[0]
+    prewitt_x = cv2.filter2D(image, -1, kernelx)
+    prewitt_y = cv2.filter2D(image, -1, kernely)
+    prewitt = cv2.addWeighted(prewitt_x, 0.5, prewitt_y, 0.5, 0)
+    return prewitt
+
 # Function to plot histogram
 def plot_histogram(image, title):
     fig = Figure(figsize=(5, 3))

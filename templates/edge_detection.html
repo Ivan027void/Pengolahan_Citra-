@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edge Detection</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body>
+    <header>
+      <nav class="navbar">
+        <button><a href="/">Home</a></button>
+        <button><a href="/about">About Us</a></button>
+        <div class="dropdown">
+          <button class="dropbtn">Features</button>
+          <div class="dropdown-content">
+            <a href="/Histogram_Equal">Histogram Equalization</a>
+            <a href="/Face_Blurring">Face Blurring</a>
+            <a href="/Edge_Detection">Edge Detection</a>
+            <!-- Add other feature links here -->
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <section class="content">
+      <div class="centered-title">
+        <h2>Edge Detection</h2>
+      </div>
+
+      <div class="form-container">
+        <form
+          action="/Edge_Detection"
+          method="post"
+          enctype="multipart/form-data"
+        >
+          <label for="file">Upload Image:</label>
+          <input type="file" name="file" accept="image/*" />
+
+          <p>Choose Detection Method:</p>
+          <div class="radio-container">
+            <input
+              type="radio"
+              id="sobel"
+              name="detection_method"
+              value="sobel"
+              checked
+            />
+            <label for="sobel">Sobel</label>
+            <input
+              type="radio"
+              id="canny"
+              name="detection_method"
+              value="canny"
+            />
+            <label for="canny">Canny</label>
+            <input
+              type="radio"
+              id="prewitt"
+              name="detection_method"
+              value="prewitt"
+            />
+            <label for="prewitt">Prewitt</label>
+            <input
+              type="radio"
+              id="laplacian"
+              name="detection_method"
+              value="laplacian"
+            />
+            <label for="laplacian">Laplacian</label>
+          </div>
+
+          <button type="submit" class="btn">Upload</button>
+        </form>
+      </div>
+
+      {% if original_image %}
+      <div class="output-container">
+        <div class="output-image">
+          <h3>Original Image</h3>
+          <img
+            src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}"
+            alt="Original Image"
+            width="400"
+          />
+        </div>
+        <div class="output-image">
+          <h3>Edge Detection Result</h3>
+          <img src="{{ edge_detected_image }}" alt="Edge Detection Result" />
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    <footer class="footer">
+      <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+    </footer>
+  </body>
+</html>
