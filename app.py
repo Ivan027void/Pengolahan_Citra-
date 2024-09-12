@@ -17,7 +17,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Define blur levels
-blur_levels = [5, 15, 25, 35, 45]
+#blur_levels = [5, 15, 25, 35, 45]
 
 # Load OpenCV's pre-trained face detector
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
@@ -141,11 +141,34 @@ def face_blurring_page():
 
             # Normalize the path for URL (use forward slashes)
             original_image_path = get_image_url(filename)  # Use utility function
+            
+            # Get the absolute path to the saved image
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            
+            # Read the image using OpenCV
+            img = cv2.imread(image_path)
 
+            # Convert to grayscale for face detection
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            # Load OpenCV's Haar cascade for face detection
+            face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+            
+            # Detect faces
+            faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+            
+            for (x, y, w, h) in faces:
+                face = img[y:y+h, x:x+w]
+                blurred_face = cv2.GaussianBlur(face, (15, 15), 0)
+                img[y:y+h, x:x+w] = blurred_face
+            
+            _, buffer = cv2.imencode('.png', img)
+            blurred_image_data = base64.b64encode(buffer).decode('ascii')
+    
             # Render the initial page with the original image
             return render_template('face_blurring.html', 
                                    original_image=original_image_path,
-                                   blurred_image=None,
+                                   blurred_image= f"data:image/png;base64,{blurred_image_data}",
                                    blur_level=15)  # Default blur level
     return render_template('face_blurring.html')
 
