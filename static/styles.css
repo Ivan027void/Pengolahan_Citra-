@@ -221,6 +221,18 @@ button:hover {
     max-width: calc(50% - 20px); /* Ensure the width is half the container */
     box-sizing: border-box;
     text-align: center; /* Center the text and images */
+
+    /* Box-like appearance */
+    padding: 15px; /* Padding inside the box */
+    border: 2px solid #ddd; /* Border for the box */
+    border-radius: 10px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Slight shadow for a 3D effect */
+    background-color: #f9f9f9; /* Background color for the container */
+}
+
+.output-image h3 {
+    margin-bottom: 10px; /* Add spacing between the title and image */
+    font-size: 1.1em; /* Increase title size */
 }
 
 .output-image img {
