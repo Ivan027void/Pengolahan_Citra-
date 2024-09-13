@@ -251,14 +251,6 @@ def apply_sobel(image):
     return sobel
 
 # # Utility function for Prewitt edge detection
-# def apply_prewitt(image):
-#     kernelx = cv2.getDerivKernels(1, 0, 3, normalize=True)[0]
-#     kernely = cv2.getDerivKernels(0, 1, 3, normalize=True)[0]
-#     prewitt_x = cv2.filter2D(image, -1, kernelx)
-#     prewitt_y = cv2.filter2D(image, -1, kernely)
-#     prewitt = cv2.addWeighted(prewitt_x, 0.5, prewitt_y, 0.5, 0)
-#     return prewitt
-
 def apply_prewitt(image):
     image = np.float32(image)
     # Define Prewitt kernels for horizontal and vertical edges
@@ -275,7 +267,7 @@ def apply_prewitt(image):
     grad_y = cv2.filter2D(image, -1, kernel_y)
 
     # Combine the gradients
-    prewitt = cv2.sqrt(cv2.addWeighted(np.square(grad_x), 0.5, np.square(grad_y), 0.5, 0))
+    prewitt = cv2.sqrt(cv2.addWeighted(np.square(grad_x), 1.0, np.square(grad_y), 1.0, 0))
     prewitt = cv2.convertScaleAbs(prewitt)
     return prewitt
 
