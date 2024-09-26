@@ -4,7 +4,6 @@ from matplotlib.figure import Figure
 import cv2
 from io import BytesIO
 import base64
-from utils import save_uploaded_file, get_image_url  # Import utility functions
 from werkzeug.utils import secure_filename
 import numpy as np
 
@@ -33,6 +32,11 @@ def save_uploaded_file(file, upload_folder):
 # Utility function to get image URL for rendering
 def get_image_url(filename):
     return f'/static/uploads/{filename}'
+
+# Convert images to base64 for rendering in HTML
+def convert_image_to_base64(img):
+    _, buffer = cv2.imencode('.png', img)
+    return base64.b64encode(buffer).decode('ascii')
 
 # Home route
 @app.route('/')
@@ -304,6 +308,52 @@ def histogram_equalization(image):
     img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
     img_output = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR)
     return img_output
+
+# Segmentation route for satellite images
+@app.route('/segment_image', methods=['GET', 'POST'])
+def segment_image():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            return redirect(request.url)
+        if file:
+            # Save the uploaded image file
+            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            # Read the satellite image
+            image = cv2.imread(filepath)
+            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+            # Define the green color range for vegetation
+            lower_green = np.array([35, 50, 50])  # Lower range for green color (HSV)
+            upper_green = np.array([90, 255, 255])  # Upper range for green color (HSV)
+
+            # Create a mask for green (vegetation)
+            mask = cv2.inRange(hsv, lower_green, upper_green)
+            segmented_with_plants = cv2.bitwise_and(image_rgb, image_rgb, mask=mask)
+
+            # Region without vegetation (inverse of the plant mask)
+            mask_inverse = cv2.bitwise_not(mask)
+            segmented_without_plants = cv2.bitwise_and(image_rgb, image_rgb, mask=mask_inverse)
+            # keep the rgb color on the image
+            segmented_without_plants = cv2.cvtColor(segmented_without_plants, cv2.COLOR_BGR2RGB)
+
+            plants_image_base64 = convert_image_to_base64(segmented_with_plants)
+            non_plants_image_base64 = convert_image_to_base64(segmented_without_plants)
+
+            # Render the results on the template
+            return render_template('segmentation_image.html',
+                                   original_image=get_image_url(filename),
+                                   plants_image=f"data:image/png;base64,{plants_image_base64}",
+                                   non_plants_image=f"data:image/png;base64,{non_plants_image_base64}")
+
+    return render_template('segmentation_image.html')  # Render upload form for GET request
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
