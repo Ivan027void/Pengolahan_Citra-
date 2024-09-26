@@ -22,8 +22,18 @@ h2 {
 /* Navbar Styles */
 header {
     background-color: #4CAF50;
-    padding: 1rem;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
+
+/* Style for the app name */
+.app-name {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+  }
 
 .navbar{
     list-style: none;
@@ -33,6 +43,17 @@ header {
     justify-content: flex-end;
     margin-right: 30px;
 }
+.navbar button {
+    color: white;
+    border: black;
+    padding: 10px 15px;
+    margin-left: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+    text-align: center;
+  }
+
 .navbar a {
     color: white;
     text-decoration: none;
@@ -44,14 +65,24 @@ header {
     color: white;
     border: none;
     cursor: pointer;
+    border: none;
+    padding: 10px 15px;
+    font-size: 16px;
+    border-radius: 5px;
 }
 
+.dropdown {
+    position: relative;
+    display: inline-block;
+  }
 .dropdown-content {
     display: none;
     position: absolute;
     background-color: white;
     min-width: 50px;
     box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    margin-right: 15px;
+    z-index: 1;
 }
 
 .dropdown:hover .dropdown-content {
@@ -66,7 +97,7 @@ header {
 }
 
 .dropdown-content a:hover {
-    background-color: #f1f1f1;
+    background-color: #ddd;
 }
 
 /* Hero Section */
@@ -201,6 +232,7 @@ button {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    font-size: 18px;
 }
 
 button:hover {
@@ -275,7 +307,6 @@ footer {
     color: #333;
 }
 
-
 /* About Us Section Styling */
 .about-section {
     padding: 40px 20px; /* Add space around the section */
@@ -287,6 +318,7 @@ footer {
     text-align: left; /* Left-align text for readability */
     color: #333; /* Darker text color for readability */
     line-height: 1.6; /* Space out lines for better readability */
+    flex-grow: 1; 
 }
 
 /* About Us Section Headings */
