@@ -351,5 +351,55 @@ def segment_image():
 
     return render_template('segmentation_image.html')  # Render upload form for GET request
 
+# Color Filtering route
+@app.route('/Color_Filtering', methods=['GET', 'POST'])
+def color_filtering_page():
+    if request.method == 'POST':
+        if 'file' not in request.files or 'color' not in request.form:
+            return redirect(request.url)
+        file = request.files['file']
+        color = request.form['color']  # RGB or specific color like red, green, blue
+        if file.filename == '':
+            return redirect(request.url)
+        if file:
+            # Save file using utility function
+            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            # Read image
+            image = cv2.imread(filepath)
+            image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+            # Define color ranges for filtering (adjust based on color)
+            if color == 'red':
+                lower_bound = np.array([0, 120, 70])
+                upper_bound = np.array([10, 255, 255])
+            elif color == 'green':
+                lower_bound = np.array([35, 100, 100])
+                upper_bound = np.array([85, 255, 255])
+            elif color == 'blue':
+                lower_bound = np.array([100, 150, 0])
+                upper_bound = np.array([140, 255, 255])
+            else:
+                # Default is no filtering
+                lower_bound = np.array([0, 0, 0])
+                upper_bound = np.array([180, 255, 255])
+
+            # Apply color mask
+            mask = cv2.inRange(image_hsv, lower_bound, upper_bound)
+            filtered_image = cv2.bitwise_and(image, image, mask=mask)
+
+            # Convert the filtered image to base64 to display on HTML
+            _, buffer = cv2.imencode('.png', filtered_image)
+            filtered_image_data = base64.b64encode(buffer).decode('ascii')
+
+            return render_template('color_filtering.html',
+                                   original_image=get_image_url(filename),
+                                   filtered_image=f"data:image/png;base64,{filtered_image_data}",
+                                   color=color)
+
+    return render_template('color_filtering.html')
+
+
 if __name__ == "__main__":
     app.run(debug=True)

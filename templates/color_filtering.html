@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Color Filtering</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+  </head>
+  <body>
+    <header>
+      <p class="app-name">Pixel Guard</p>
+      <nav class="navbar">
+        <button><a href="/">Home</a></button>
+        <button><a href="/about">About Us</a></button>
+        <div class="dropdown">
+          <button class="dropbtn">Features</button>
+          <div class="dropdown-content">
+            <a href="/Histogram_Equal">Histogram Equalization</a>
+            <a href="/Face_Blurring">Face Blurring</a>
+            <a href="/Face_Detection">Face Detection</a>
+            <a href="/Edge_Detection">Edge Detection</a>
+            <a href="/Segment_Image">Image Segmentation</a>
+            <a href="/Color_Filtering">Color Filtering</a>
+            <!-- Add other feature links here -->
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <section class="content">
+      <div class="centered-title">
+        <h2>Color Filtering</h2>
+      </div>
+
+      <div class="form-container">
+        <form
+          action="/Color_Filtering"
+          method="post"
+          enctype="multipart/form-data"
+        >
+          <label for="file">Upload Image:</label>
+          <input type="file" name="file" accept="image/*" required />
+
+          <p>Choose Color Filter:</p>
+          <div class="radio-container">
+            <input
+              type="radio"
+              id="red"
+              name="color"
+              value="red"
+              checked
+            />
+            <label for="red">Red</label>
+            <input
+              type="radio"
+              id="green"
+              name="color"
+              value="green"
+            />
+            <label for="green">Green</label>
+            <input
+              type="radio"
+              id="blue"
+              name="color"
+              value="blue"
+            />
+            <label for="blue">Blue</label>
+          </div>
+
+          <button type="submit" class="btn">Apply Filter</button>
+        </form>
+      </div>
+
+      {% if original_image %}
+      <div class="output-container">
+        <div class="output-image">
+          <h3>Original Image</h3>
+          <img
+            src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}"
+            alt="Original Image"
+            width="400"
+          />
+        </div>
+        <div class="output-image">
+          <h3>Filtered Image ({{ color | capitalize }})</h3>
+          <img src="{{ filtered_image }}" alt="Filtered Image" />
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    <footer class="footer">
+      <p>&copy; 2024
