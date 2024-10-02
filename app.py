@@ -16,11 +16,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Ensure the upload folder exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Define blur levels
-#blur_levels = [5, 15, 25, 35, 45]
-
 # Load OpenCV's pre-trained face detector
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
 
 # Utility function to save the uploaded file
 def save_uploaded_file(file, upload_folder):
@@ -310,7 +308,7 @@ def histogram_equalization(image):
     return img_output
 
 # Segmentation route for satellite images
-@app.route('/segment_image', methods=['GET', 'POST'])
+@app.route('/Segment_Image', methods=['GET', 'POST'])
 def segment_image():
     if request.method == 'POST':
         if 'file' not in request.files:
@@ -352,8 +350,6 @@ def segment_image():
                                    non_plants_image=f"data:image/png;base64,{non_plants_image_base64}")
 
     return render_template('segmentation_image.html')  # Render upload form for GET request
-
-
 
 if __name__ == "__main__":
     app.run(debug=True)
