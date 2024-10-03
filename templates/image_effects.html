@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image Segmentation</title>
+    <title>Image Effects</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   </head>
   <body>
@@ -29,15 +29,26 @@
 
     <section class="content">
       <div class="centered-title">
-        <h2>Vegetaion Image Segmentation</h2>
+        <h2>Apply Image Effects</h2>
       </div>
 
       <div class="form-container">
-        <form action="/Segment_Image" method="post" enctype="multipart/form-data">
-          <label for="file">Upload Satellite Image:</label>
+        <form action="/Image_Effects" method="post" enctype="multipart/form-data">
+          <label for="file">Upload an Image:</label>
           <input type="file" name="file" id="file" required />
           <br /><br />
-          <button type="submit">Segment Image</button>
+          
+          <label for="effect">Choose an Effect:</label>
+          <select name="effect" id="effect" required>
+            <option value="grayscale">Grayscale</option>
+            <option value="sepia">Sepia</option>
+            <option value="negative">Negative</option>
+            <option value="lomo">Lomo Effect</option>
+            <option value="black_and_white">Black & White</option>
+          </select>
+          <br /><br />
+          
+          <button type="submit">Apply Effect</button>
         </form>
       </div>
 
@@ -46,24 +57,16 @@
         <div class="output-image">
           <h3>Original Image</h3>
           <img
-            src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}"
+            src="{{ original_image }}"
             alt="Original Image"
             width="400"
           />
         </div>
         <div class="output-image">
-          <h3>Segmented Image (With Vegetation)</h3>
+          <h3>Effect Applied: {{ effect | capitalize }}</h3>
           <img
-            src="{{ plants_image }}"
-            alt="Segmented Image with Vegetation"
-            width="400"
-          />
-        </div>
-        <div class="output-image">
-          <h3>Segmented Image (Without Vegetation)</h3>
-          <img
-            src="{{ non_plants_image }}"
-            alt="Segmented Image without Vegetation"
+            src="{{ effect_image }}"
+            alt="Image with Effect"
             width="400"
           />
         </div>

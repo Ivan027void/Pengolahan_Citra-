@@ -350,3 +350,45 @@ footer {
 .about-section a:hover {
     text-decoration: underline; /* Underline on hover for links */
 }
+
+/* Style for the label */
+label[for="effect"] {
+    font-family: 'Arial', sans-serif;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 10px;
+    display: block;
+  }
+  
+  /* Style for the select dropdown */
+  select#effect {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    color: #333;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+  }
+  
+  /* Change border color on focus */
+  select#effect:focus {
+    border-color: #007bff;
+  }
+  
+  /* Style the options */
+  select#effect option {
+    padding: 10px;
+    font-size: 16px;
+    background-color: #fff;
+    color: #333;
+  }
+  
+  /* Hover effect on the dropdown */
+  select#effect:hover {
+    background-color: #f1f1f1;
+  }
+  

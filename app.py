@@ -400,7 +400,99 @@ def color_filtering_page():
 
     return render_template('color_filtering.html')
 
+# fitur konversi gambar ke grayscale,sepia, dan negative, lomo effect.
+@app.route('/Image_Effects', methods=['GET', 'POST'])
+def image_effects_page():
+    if request.method == 'POST':
+        if 'file' not in request.files or 'effect' not in request.form:
+            return redirect(request.url)
+        file = request.files['file']
+        effect = request.form['effect']  # grayscale, sepia, negative, lomo
+        if file.filename == '':
+            return redirect(request.url)
+        if file:
+            # Save file using utility function
+            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
+            # Read image
+            image = cv2.imread(filepath)
+
+            # Apply the selected effect
+            if effect == 'grayscale':
+                effect_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            elif effect == 'sepia':
+                effect_image = apply_sepia(image)
+            elif effect == 'negative':
+                effect_image = 255 - image
+            elif effect == 'lomo':
+                effect_image = apply_lomo(image)
+            elif effect == 'black_and_white':
+                effect_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                _, effect_image = cv2.threshold(effect_image, 128, 255, cv2.THRESH_BINARY)
+            
+
+            # Convert the effect image to base64 using func
+            effect_image_data = convert_image_to_base64(effect_image)
+            
+
+            return render_template('image_effects.html',
+                                   original_image=get_image_url(filename),
+                                   effect_image=f"data:image/png;base64,{effect_image_data}",
+                                   effect=effect)
+    
+    return render_template('image_effects.html')
+
+# Utility function to apply sepia effect
+def apply_sepia(image):
+    """Applies a sepia filter to an image by transforming the colors.
+
+    Args:
+        image: The input image in BGR format.
+
+    Returns:
+        The image with the sepia effect applied.
+    """
+    sepia_filter = np.array([[0.272, 0.534, 0.131],
+                             [0.349, 0.686, 0.168],
+                             [0.393, 0.769, 0.189]])
+    
+    # Apply the sepia filter
+    sepia_image = cv2.transform(image, sepia_filter)
+    
+    # Clip the values to be in the valid range [0, 255]
+    sepia_image = np.clip(sepia_image, 0, 255).astype(np.uint8)
+    
+    return sepia_image
+
+# Utility function to apply lomo effect
+def apply_lomo(image):
+    """Applies the lomo effect to an image by enhancing contrast and adding a vignette effect.
+
+    Args:
+        image: The input image in BGR format.
+
+    Returns:
+        The image with the lomo effect applied.
+    """
+    height, width = image.shape[:2]
+
+    # Create vignette effect
+    kernel_x = cv2.getGaussianKernel(width, width / 2)
+    kernel_y = cv2.getGaussianKernel(height, height / 2)
+    kernel = kernel_y * kernel_x.T
+    vignette_mask = 255 * kernel / np.linalg.norm(kernel)
+    
+    # Apply vignette mask to each channel
+    for i in range(3):
+        image[:, :, i] = image[:, :, i] * vignette_mask
+
+    # Apply contrast enhancement
+    lomo_image = cv2.addWeighted(image, 1.3, np.zeros_like(image), 0, 30)
+    
+    return lomo_image
+
+## fitur buat buat /bisa di akses di /Collage tidak ada di home
 # Utility function to pad an image to a specific size
 def pad_image(image, target_height, target_width):
     height, width = image.shape[:2]
@@ -510,7 +602,6 @@ def create_collage(image_paths, layout='grid', order=None):
             collage[row_index:row_index + min_height, col_index:col_index + min_width] = resized_images[idx]
 
     return collage
-
 
 # Collage route
 @app.route('/Collage', methods=['GET', 'POST'])
