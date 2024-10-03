@@ -391,4 +391,24 @@ label[for="effect"] {
   select#effect:hover {
     background-color: #f1f1f1;
   }
+
+   /* Effect Explanation Section */
+   .effect-explanation {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .effect-explanation h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  .effect-explanation p {
+    font-size: 16px;
+  }
   

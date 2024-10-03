@@ -400,7 +400,7 @@ def color_filtering_page():
 
     return render_template('color_filtering.html')
 
-# fitur konversi gambar ke grayscale,sepia, dan negative, lomo effect.
+# fitur konversi gambar ke efek filter kamera.
 @app.route('/Image_Effects', methods=['GET', 'POST'])
 def image_effects_page():
     if request.method == 'POST':
@@ -421,17 +421,65 @@ def image_effects_page():
             # Apply the selected effect
             if effect == 'grayscale':
                 effect_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            elif effect == 'sepia':
-                effect_image = apply_sepia(image)
-            elif effect == 'negative':
-                effect_image = 255 - image
-            elif effect == 'lomo':
-                effect_image = apply_lomo(image)
             elif effect == 'black_and_white':
                 effect_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 _, effect_image = cv2.threshold(effect_image, 128, 255, cv2.THRESH_BINARY)
-            
-
+            elif effect == 'negative':
+                effect_image = 255 - image
+            elif effect == 'sepia':
+                effect_image = apply_sepia(image)
+            elif effect == 'vintage':
+                effect_image = apply_vintage(image)
+            elif effect == 'retro':
+                effect_image = apply_retro(image)
+            elif effect == 'noir':
+                effect_image = apply_noir(image)
+            elif effect == 'kodachrome':
+                effect_image = apply_kodachrome(image)
+            elif effect == 'vivid':
+                effect_image = apply_vivid(image) 
+            elif effect == 'bright':
+                effect_image = apply_bright(image)
+            elif effect == 'sunny':
+                effect_image = apply_sunny(image)
+            elif effect == 'radiant':
+                effect_image = apply_radiant(image)
+            elif effect == 'punchy':
+                effect_image = apply_punchy(image)
+            elif effect == 'soft':
+                effect_image = apply_soft(image)
+            elif effect == 'dreamy':
+                effect_image = apply_dreamy(image)
+            elif effect == 'muted':
+                effect_image = apply_muted(image)
+            elif effect == 'dark':
+                effect_image = apply_dark(image)
+            elif effect == 'moody':
+                effect_image = apply_moody(image)
+            elif effect == 'shadow':
+                effect_image = apply_shadow(image)
+            elif effect == 'foggy':
+                effect_image = apply_foggy(image)
+            elif effect == 'nature':
+                effect_image = apply_nature(image)
+            elif effect == 'forest':
+                effect_image = apply_forest(image)
+            elif effect == 'beach':
+                effect_image = apply_beach(image)
+            elif effect == 'sky':
+                effect_image = apply_sky(image)
+            elif effect == 'earth':
+                effect_image = apply_earth(image)
+            elif effect == 'glitch':
+                effect_image = apply_glitch(image)
+            elif effect == 'pixel':
+                effect_image = apply_pixel(image)
+            elif effect == 'vaporwave':
+                effect_image = apply_vaporwave(image)
+            elif effect == 'duotone':
+                effect_image = apply_duotone(image)
+            elif effect == 'split_tone':
+                effect_image = apply_split_tone(image)
             # Convert the effect image to base64 using func
             effect_image_data = convert_image_to_base64(effect_image)
             
@@ -442,6 +490,128 @@ def image_effects_page():
                                    effect=effect)
     
     return render_template('image_effects.html')
+
+
+# Utility function to apply glitch 
+def apply_glitch(image):
+    # Create a copy of the image to work with
+    glitch_image = image.copy()
+
+    # Step 1: Randomly shift horizontal slices of the image
+    rows, cols, _ = image.shape
+    slice_height = np.random.randint(5, 20)  # Random slice height between 5 and 20 pixels
+
+    for i in range(0, rows, slice_height):
+        # Define slice range
+        start_row = i
+        end_row = min(i + slice_height, rows)
+        
+        # Randomly shift the slice
+        shift = np.random.randint(-10, 10)  # Random shift amount
+        glitch_image[start_row:end_row] = np.roll(glitch_image[start_row:end_row], shift, axis=1)
+
+    # Step 2: Color channel offset
+    for channel in range(3):  # For B, G, R channels
+        # Randomly shift each channel to create a color separation effect
+        channel_shift = np.random.randint(-5, 5)
+        # Shift the channel
+        channel_data = glitch_image[:, :, channel]
+        glitch_image[:, :, channel] = np.roll(channel_data, channel_shift, axis=1)
+
+    # Step 3: Add noise
+    noise = np.random.randint(0, 50, (rows, cols, 3), dtype=np.uint8)  # Create random noise
+    glitch_image = cv2.add(glitch_image, noise)  # Add noise to the image
+
+    # Clip values to ensure they remain valid
+    glitch_image = np.clip(glitch_image, 0, 255).astype(np.uint8)
+
+    return glitch_image
+
+
+# Utility function to apply pixel effect
+def apply_pixel(image, pixel_size=10):
+    # Pixelate the image
+    height, width, _ = image.shape
+    pixelated = cv2.resize(image, (width // pixel_size, height // pixel_size), interpolation=cv2.INTER_NEAREST)
+    pixelated_image = cv2.resize(pixelated, (width, height), interpolation=cv2.INTER_NEAREST)
+    return pixelated_image
+
+# Utility function to apply vaporwave effect
+def apply_vaporwave(image):
+    # Create a copy of the image to work with
+    vaporwave_image = image.copy()
+
+    # Step 1: Apply a color palette (pastel colors)
+    # Convert the image to float for color manipulation
+    vaporwave_image = vaporwave_image.astype(np.float32) / 255.0
+
+    # Apply a color shift to create a pastel effect
+    pastel_color_shift = np.array([0.8,0.5,1.0])  # RGB (1.0 -> R, 0.5 -> G, 0.8 -> B)
+    vaporwave_image *= pastel_color_shift  # Multiply color channels
+    vaporwave_image = np.clip(vaporwave_image, 0, 1)  # Ensure values are within [0, 1]
+
+    # Step 2: Add a gradient overlay
+    height, width, _ = vaporwave_image.shape
+    gradient = np.linspace(0, 1, height).reshape(height, 1)  # Vertical gradient
+    gradient = np.tile(gradient, (1, width))  # Tile to cover the width
+    gradient = np.expand_dims(gradient, axis=-1)  # Add channel dimension
+
+    # Apply the gradient as an overlay
+    vaporwave_image += gradient * 0.2  # Adjust intensity
+    vaporwave_image = np.clip(vaporwave_image, 0, 1)  # Ensure values are within [0, 1]
+
+    # Step 3: Add a Gaussian blur
+    vaporwave_image = cv2.GaussianBlur(vaporwave_image, (5, 5), 0)
+
+    # Step 4: Add noise for texture
+    noise = np.random.normal(0, 0.1, vaporwave_image.shape).astype(np.float32)  # Gaussian noise
+    vaporwave_image += noise
+    vaporwave_image = np.clip(vaporwave_image, 0, 1)  # Ensure values are within [0, 1]
+
+    # Step 5: Convert back to uint8
+    return (vaporwave_image * 255).astype(np.uint8)
+
+# Utility function to apply duotone effect
+def apply_duotone(image):
+    # Replace the colors in the image to create a duotone effect
+    # Convert to grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Normalize the grayscale image
+    norm_image = cv2.normalize(gray_image, None, 0, 255, cv2.NORM_MINMAX)
+    
+    # Create two colors for the duotone effect
+    color1 = np.array([255, 0, 0])  # Red in BGR
+    color2 = np.array([0, 0, 255])  # Blue in BGR
+    
+    # Map the normalized image to the two colors
+    duotone_image = np.zeros_like(image)
+    for i in range(3):  # For each channel
+        duotone_image[:, :, i] = norm_image * (color1[i] * (norm_image <= 127) + color2[i] * (norm_image > 127)) / 255
+    
+    return duotone_image.astype(np.uint8)
+
+# Utility function to apply split tone effect
+def apply_split_tone(image, highlight_color=(0, 255, 255), shadow_color=(255, 0, 0)):
+    # Convert to float for precise manipulation
+    split_tone_image = image.astype(np.float32) / 255.0
+
+    # Create an output image with the same shape as the input
+    output_image = np.zeros_like(image, dtype=np.float32)
+
+    # Create masks for highlights and shadows
+    highlight_mask = split_tone_image.mean(axis=2) > 0.5  # Mean to find highlights
+    shadow_mask = split_tone_image.mean(axis=2) <= 0.5  # Mean to find shadows
+
+    # Apply highlight color
+    output_image[highlight_mask] = highlight_color  # Direct assignment for highlights
+
+    # Apply shadow color
+    output_image[shadow_mask] = shadow_color  # Direct assignment for shadows
+
+    # Convert back to uint8 and ensure values are clipped to the valid range
+    output_image = np.clip(output_image, 0, 255).astype(np.uint8)
+
+    return output_image
 
 # Utility function to apply sepia effect
 def apply_sepia(image):
@@ -465,32 +635,227 @@ def apply_sepia(image):
     
     return sepia_image
 
-# Utility function to apply lomo effect
-def apply_lomo(image):
-    """Applies the lomo effect to an image by enhancing contrast and adding a vignette effect.
+# Utility function to apply vintage effect
+def apply_vintage(image):
+    # Apply sepia effect with a slight adjustment
+    sepia_filter = np.array([[0.25, 0.55, 0.15],
+                            [0.35, 0.65, 0.2],
+                            [0.40, 0.75, 0.25]])
+    sepia_image = cv2.transform(image, sepia_filter)
+    sepia_image = np.clip(sepia_image, 0, 255).astype(np.uint8)
+    # Add noise for a more vintage look
+    noise_level = 20
+    noise = np.random.randint(0, noise_level, image.shape, dtype=np.uint8)
+    vintage_image = cv2.add(sepia_image, noise)
+    return vintage_image
 
-    Args:
-        image: The input image in BGR format.
-
-    Returns:
-        The image with the lomo effect applied.
-    """
-    height, width = image.shape[:2]
-
-    # Create vignette effect
-    kernel_x = cv2.getGaussianKernel(width, width / 2)
-    kernel_y = cv2.getGaussianKernel(height, height / 2)
-    kernel = kernel_y * kernel_x.T
-    vignette_mask = 255 * kernel / np.linalg.norm(kernel)
+# Utility function to apply retro effect
+def apply_retro(image):
+    # Apply a color palette with muted tones and a slight color shift
+    # Create a lookup table (LUT) for each channel (B, G, R)
+    retro_lut = np.zeros((256, 1, 3), dtype=np.uint8)
     
-    # Apply vignette mask to each channel
-    for i in range(3):
-        image[:, :, i] = image[:, :, i] * vignette_mask
-
-    # Apply contrast enhancement
-    lomo_image = cv2.addWeighted(image, 1.3, np.zeros_like(image), 0, 30)
+    # Define a retro-like color transformation for each channel
+    for i in range(256):
+        retro_lut[i, 0, 0] = min(255, i + 40)  # Blue channel modification
+        retro_lut[i, 0, 1] = max(0, i - 30)   # Green channel modification
+        retro_lut[i, 0, 2] = min(255, i + 20)  # Red channel modification
     
-    return lomo_image
+    # Apply the LUT to the image
+    retro_image = cv2.LUT(image, retro_lut)
+    return retro_image
+
+# Utility function to apply noir effect
+def apply_noir(image):
+# Convert to grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Enhance contrast using histogram equalization
+    equalized_image = cv2.equalizeHist(gray_image)
+
+    # Create a vignette effect
+    rows, cols = equalized_image.shape
+    # Create a Gaussian kernel
+    X_resultant_kernel = cv2.getGaussianKernel(cols, 250)
+    Y_resultant_kernel = cv2.getGaussianKernel(rows, 250)
+    gaussian_kernel = Y_resultant_kernel * X_resultant_kernel.T
+    # Normalize to make the kernel values between 0 and 1
+    vignette_mask = gaussian_kernel / gaussian_kernel.max()
+    
+    # Convert vignette mask to the same type as the equalized image
+    vignette_mask = cv2.normalize(vignette_mask, None, alpha=1, beta=0, norm_type=cv2.NORM_MINMAX)
+
+    # Apply the vignette mask
+    # Explicitly convert equalized_image to float32 to prevent type mismatch
+    noir_image = cv2.multiply(equalized_image.astype(np.float32), vignette_mask.astype(np.float32))
+
+    # Convert back to uint8
+    noir_image = cv2.convertScaleAbs(noir_image)
+
+    return noir_image
+
+# Utility function to apply kodachrome effect
+def apply_kodachrome(image):
+    # Create a lookup table (LUT) for each channel (B, G, R)
+    kodachrome_lut = np.zeros((256, 1, 3), dtype=np.uint8)
+    
+    # Define a vibrant Kodachrome-like color transformation for each channel
+    for i in range(256):
+        kodachrome_lut[i, 0, 0] = min(255, int(i * 1.1))   # Blue channel boost
+        kodachrome_lut[i, 0, 1] = min(255, int(i * 1.05))  # Green channel slight boost
+        kodachrome_lut[i, 0, 2] = min(255, int(i * 1.2))   # Red channel strong boost
+    
+    # Apply the LUT to the image
+    kodachrome_image = cv2.LUT(image, kodachrome_lut)
+    
+    # Optionally boost the contrast and saturation further
+    kodachrome_image = cv2.convertScaleAbs(kodachrome_image, alpha=1.5, beta=0)
+    
+    return kodachrome_image
+
+# Utility function to apply vivid effect
+def apply_vivid(image):
+    # Increase saturation and contrast
+    vivid_image = cv2.convertScaleAbs(image, alpha=1.5, beta=0)
+    vivid_image = cv2.cvtColor(vivid_image, cv2.COLOR_BGR2HSV)
+    vivid_image[:, :, 1] = vivid_image[:, :, 1] * 1.5
+    vivid_image[:, :, 2] = vivid_image[:, :, 2] * 1.5
+    vivid_image = cv2.cvtColor(vivid_image, cv2.COLOR_HSV2BGR)
+    return vivid_image
+
+# Utility function to apply bright effect
+def apply_bright(image):
+    # Increase brightness
+    bright_image = cv2.convertScaleAbs(image, alpha=1, beta=50)
+    # alpha is the contrast factor, beta is the brightness factor
+    return bright_image
+
+# Utility function to apply sunny effect
+def apply_sunny(image):
+    # Increase brightness and contrast, add a slight warmth
+    sunny_image = cv2.convertScaleAbs(image, alpha=1.2, beta=30)
+    sunny_image = cv2.cvtColor(sunny_image, cv2.COLOR_BGR2HSV)
+    sunny_image[:, :, 0] = sunny_image[:, :, 0] + 10
+    sunny_image = cv2.cvtColor(sunny_image, cv2.COLOR_HSV2BGR)
+    return sunny_image
+
+# Utility function to apply radiant effect
+def apply_radiant(image):
+    # Increase saturation, brightness, and contrast
+    radiant_image = cv2.convertScaleAbs(image, alpha=1.5, beta=30)
+    radiant_image = cv2.cvtColor(radiant_image, cv2.COLOR_BGR2HSV)
+    radiant_image[:, :, 1] = radiant_image[:, :, 1] * 1.5
+    radiant_image[:, :, 2] = radiant_image[:, :, 2] * 1.5
+    radiant_image = cv2.cvtColor(radiant_image, cv2.COLOR_HSV2BGR)
+    return radiant_image
+
+# Utility function to apply punchy effect
+def apply_punchy(image):
+    # Increase contrast and saturation, reduce brightness slightly
+    punchy_image = cv2.convertScaleAbs(image, alpha=1.5, beta=-10)
+    punchy_image = cv2.cvtColor(punchy_image, cv2.COLOR_BGR2HSV)
+    punchy_image[:, :, 1] = punchy_image[:, :, 1] * 1.5
+    punchy_image = cv2.cvtColor(punchy_image, cv2.COLOR_HSV2BGR)
+    return punchy_image
+
+# Utility function to apply soft effect
+def apply_soft(image):
+    # Apply Gaussian blur
+    soft_image = cv2.GaussianBlur(image, (5, 5), 0)
+    return soft_image
+
+# Utility function to apply dreamy effect
+def apply_dreamy(image):
+    # Apply Gaussian blur and increase brightness
+    dreamy_image = cv2.GaussianBlur(image, (7, 7), 0)
+    dreamy_image = cv2.convertScaleAbs(dreamy_image,alpha=1.1, beta=20)
+    return dreamy_image
+
+# Utility function to apply muted effect
+def apply_muted(image):
+  # Reduce saturation and keep brightness
+  muted_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+  muted_image[:, :, 1] = muted_image[:, :, 1] * 0.7
+  muted_image = cv2.cvtColor(muted_image, cv2.COLOR_HSV2BGR)
+  return muted_image
+
+# Utility function to apply dark effect
+def apply_dark(image):
+  # Reduce brightness and increase contrast slightly
+  dark_image = cv2.convertScaleAbs(image, alpha=0.7, beta=10)
+  # reduce the brightness of the image 
+  return dark_image
+
+# Utility function to apply moody effect
+def apply_moody(image):
+  # Reduce saturation, increase contrast, and shift hue slightly towards blue
+  moody_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+  moody_image[:, :, 1] = moody_image[:, :, 1] * 0.7 # reduce the saturation
+  moody_image[:, :, 0] = moody_image[:, :, 0] - 10 # shift hue towards blue
+  moody_image = cv2.cvtColor(moody_image, cv2.COLOR_HSV2BGR)
+  moody_image = cv2.convertScaleAbs(moody_image, alpha=1.1, beta=15) # increase contrast
+  return moody_image
+
+# Utility function to apply shadow effect
+def apply_shadow(image):
+  # Reduce brightness significantly and add a slight vignette
+  shadow_image = cv2.convertScaleAbs(image, alpha=0.5, beta=0)
+  height, width = image.shape[:2]
+  kernel_x = cv2.getGaussianKernel(width, width / 4) # create a Gaussian kernel
+  kernel_y = cv2.getGaussianKernel(height, height / 4) # create a Gaussian kernel
+  kernel = kernel_y * kernel_x.T # create a 2D Gaussian kernel
+  vignette_mask = 1 - 255 * kernel / np.linalg.norm(kernel) # create a vignette mask
+  for i in range(3):
+    image[:, :, i] = image[:, :, i] * vignette_mask # apply the vignette mask to each channel
+  return shadow_image
+
+# Utility function to apply foggy effect
+def apply_foggy(image):
+  # Reduce contrast, add white noise, and blur slightly
+  foggy_image = cv2.convertScaleAbs(image, alpha=0.7, beta=0)
+  noise_mean = 0
+  noise_sigma = 25  # Standard deviation of noise
+  noise = np.random.normal(noise_mean, noise_sigma, image.shape).astype(np.uint8)
+  foggy_image = cv2.add(foggy_image, noise)
+  foggy_image = cv2.GaussianBlur(foggy_image, (3, 3), 0)
+  return foggy_image
+
+# Utility function to apply nature effect
+def apply_nature(image):
+    # Create a green tint filter
+    green_tint = np.zeros_like(image, dtype=np.uint8)
+    green_tint[:, :] = [0, 128, 0]  # Green color
+    # Blend the original image with the green tint
+    tinted_image = cv2.addWeighted(image, 0.6, green_tint, 0.4, 0)
+    return tinted_image
+
+def apply_forest(image):
+    # Dark green filter for forest
+    forest_filter = np.zeros_like(image, dtype=np.uint8)
+    forest_filter[:, :] = [0, 200, 0]  # Dark green
+    filtered_image = cv2.add(image, forest_filter)
+    return filtered_image
+
+def apply_beach(image):
+    # Light golden color for beach vibes
+    beach_filter = np.zeros_like(image, dtype=np.uint8)
+    beach_filter[:, :] = [204,255, 255]  # Light golden
+    filtered_image = cv2.addWeighted(image, 0.7, beach_filter, 0.3, 0)
+    return filtered_image
+
+def apply_sky(image):
+    # Light blue tint for sky
+    sky_filter = np.zeros_like(image, dtype=np.uint8)
+    sky_filter[:, :] = [255, 204,204 ]  # Light blue
+    filtered_image = cv2.addWeighted(image, 0.5, sky_filter, 0.5, 0)
+    return filtered_image
+
+def apply_earth(image):
+    # Brown filter for earth
+    earth_filter = np.zeros_like(image, dtype=np.uint8)
+    earth_filter[:, :] = [0, 40,80 ]  # Earthy brown
+    filtered_image = cv2.add(image, earth_filter)
+    return filtered_image
 
 ## fitur buat buat /bisa di akses di /Collage tidak ada di home
 # Utility function to pad an image to a specific size
