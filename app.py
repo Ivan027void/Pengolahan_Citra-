@@ -6,6 +6,7 @@ from io import BytesIO
 import base64
 from werkzeug.utils import secure_filename
 import numpy as np
+import random
 
 app = Flask(__name__)
 
@@ -424,12 +425,18 @@ def image_effects_page():
             elif effect == 'black_and_white':
                 effect_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
                 _, effect_image = cv2.threshold(effect_image, 128, 255, cv2.THRESH_BINARY)
+            elif effect == 'glitch':
+                effect_image = apply_glitch(image)
+            elif effect == 'pixel':
+                effect_image = apply_pixel(image)
+            elif effect == 'vaporwave':
+                effect_image = apply_vaporwave(image)
+            elif effect == 'duotone':
+                effect_image = apply_duotone(image)
+            elif effect == 'split_tone':
+                effect_image = apply_split_tone(image)
             elif effect == 'negative':
                 effect_image = 255 - image
-            elif effect == 'sepia':
-                effect_image = apply_sepia(image)
-            elif effect == 'vintage':
-                effect_image = apply_vintage(image)
             elif effect == 'retro':
                 effect_image = apply_retro(image)
             elif effect == 'noir':
@@ -470,16 +477,7 @@ def image_effects_page():
                 effect_image = apply_sky(image)
             elif effect == 'earth':
                 effect_image = apply_earth(image)
-            elif effect == 'glitch':
-                effect_image = apply_glitch(image)
-            elif effect == 'pixel':
-                effect_image = apply_pixel(image)
-            elif effect == 'vaporwave':
-                effect_image = apply_vaporwave(image)
-            elif effect == 'duotone':
-                effect_image = apply_duotone(image)
-            elif effect == 'split_tone':
-                effect_image = apply_split_tone(image)
+        
             # Convert the effect image to base64 using func
             effect_image_data = convert_image_to_base64(effect_image)
             
@@ -526,7 +524,6 @@ def apply_glitch(image):
     glitch_image = np.clip(glitch_image, 0, 255).astype(np.uint8)
 
     return glitch_image
-
 
 # Utility function to apply pixel effect
 def apply_pixel(image, pixel_size=10):
@@ -613,57 +610,63 @@ def apply_split_tone(image, highlight_color=(0, 255, 255), shadow_color=(255, 0,
 
     return output_image
 
-# Utility function to apply sepia effect
-def apply_sepia(image):
-    """Applies a sepia filter to an image by transforming the colors.
-
+# Utility function to apply retro sepia effect
+def apply_retro(image, sepia_intensity=1, contrast_reduction=0.7, noise_amount=0.02):
+    """Applies a retro filter with adjustable sepia intensity and adds noise for an old photo look.
+    
     Args:
         image: The input image in BGR format.
+        sepia_intensity: Float to adjust sepia strength (1 for sepia, lower for vintage).
+        contrast_reduction: Float to adjust contrast (lower for more washed-out retro look).
+        noise_amount: Float to adjust the amount of noise (higher adds more grain).
 
     Returns:
-        The image with the sepia effect applied.
+        The image with the retro effect and noise applied.
     """
+    # Sepia filter matrix
     sepia_filter = np.array([[0.272, 0.534, 0.131],
                              [0.349, 0.686, 0.168],
                              [0.393, 0.769, 0.189]])
-    
-    # Apply the sepia filter
-    sepia_image = cv2.transform(image, sepia_filter)
-    
-    # Clip the values to be in the valid range [0, 255]
-    sepia_image = np.clip(sepia_image, 0, 255).astype(np.uint8)
-    
-    return sepia_image
 
-# Utility function to apply vintage effect
-def apply_vintage(image):
-    # Apply sepia effect with a slight adjustment
-    sepia_filter = np.array([[0.25, 0.55, 0.15],
-                            [0.35, 0.65, 0.2],
-                            [0.40, 0.75, 0.25]])
-    sepia_image = cv2.transform(image, sepia_filter)
+    # Apply sepia filter with intensity adjustment
+    sepia_image = cv2.transform(image, sepia_filter * sepia_intensity)
     sepia_image = np.clip(sepia_image, 0, 255).astype(np.uint8)
-    # Add noise for a more vintage look
-    noise_level = 20
-    noise = np.random.randint(0, noise_level, image.shape, dtype=np.uint8)
-    vintage_image = cv2.add(sepia_image, noise)
-    return vintage_image
 
-# Utility function to apply retro effect
-def apply_retro(image):
-    # Apply a color palette with muted tones and a slight color shift
-    # Create a lookup table (LUT) for each channel (B, G, R)
-    retro_lut = np.zeros((256, 1, 3), dtype=np.uint8)
+    # Reduce contrast slightly (for retro effect)
+    contrast_reduced = cv2.addWeighted(sepia_image, contrast_reduction, np.zeros_like(sepia_image), 0, 30)
+
+    # Add impulse noise (salt-and-pepper noise)
+    noisy_image = add_impulse_noise(contrast_reduced, noise_amount)
+
+    return noisy_image
+
+def add_impulse_noise(image, noise_amount):
+    """Adds salt-and-pepper noise to the image.
     
-    # Define a retro-like color transformation for each channel
-    for i in range(256):
-        retro_lut[i, 0, 0] = min(255, i + 40)  # Blue channel modification
-        retro_lut[i, 0, 1] = max(0, i - 30)   # Green channel modification
-        retro_lut[i, 0, 2] = min(255, i + 20)  # Red channel modification
+    Args:
+        image: The input image in BGR format.
+        noise_amount: Float, the proportion of pixels to be affected by noise.
+
+    Returns:
+        The noisy image.
+    """
+    noisy_image = image.copy()
+    h, w, _ = noisy_image.shape
+    num_noise_pixels = int(noise_amount * h * w)
     
-    # Apply the LUT to the image
-    retro_image = cv2.LUT(image, retro_lut)
-    return retro_image
+    # Add 'salt' (white) noise
+    for _ in range(num_noise_pixels // 2):
+        y = random.randint(0, h - 1)
+        x = random.randint(0, w - 1)
+        noisy_image[y, x] = [255, 255, 255]
+
+    # Add 'pepper' (black) noise
+    for _ in range(num_noise_pixels // 2):
+        y = random.randint(0, h - 1)
+        x = random.randint(0, w - 1)
+        noisy_image[y, x] = [0, 0, 0]
+
+    return noisy_image
 
 # Utility function to apply noir effect
 def apply_noir(image):

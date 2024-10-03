@@ -38,7 +38,7 @@
           <br /><br />
           
           <label for="effect">Choose an Effect:</label>
-          <select name="effect" id="effect" required onchange="showExplanation()">
+          <select name="effect" id="effect" required onchange="showExplanation(); toggleRetroOptions();">
             <option value="grayscale">Grayscale</option>
             <option value="black_and_white">Black & White</option>
             <option value="glitch">Glitch</option>
@@ -46,9 +46,7 @@
             <option value="vaporwave">Vaporwave</option>
             <option value="duotone">Duotone</option>
             <option value="split_tone">Split Tone</option>
-            <option value="sepia">Sepia</option>
             <option value="negative">Negative</option>
-            <option value="vintage">Vintage</option>
             <option value="retro">Retro</option>
             <option value="noir">Noir</option>
             <option value="kodachrome">Kodachrome</option>
@@ -72,6 +70,7 @@
           </select>
           
           <br /><br />
+
           
           <button type="submit">Apply Effect</button>
         </form>
@@ -116,11 +115,8 @@
         
         const explanations = {
           grayscale: "Convert the image into shades of gray, removing all color.",
-          sepia: "Applies a warm, brownish tone to give the image a vintage look.",
           negative: "Inverts the colors of the image, creating a negative film effect.",
-          lomo: "Adds high contrast, vignette, and color saturation, mimicking a Lomo camera.",
           black_and_white: "Transforms the image into a black and white version.",
-          vintage: "Gives the image an old-school, vintage appearance.",
           retro: "Adds a nostalgic feel, often using bold colors and unique lighting.",
           noir: "Gives the image a high-contrast, black and white cinematic look.",
           kodachrome: "Mimics the rich color palette of classic Kodachrome film.",
@@ -138,7 +134,6 @@
           moody: "Adds deep shadows and contrast to evoke an emotional tone.",
           shadow: "Enhances the shadows in the image for dramatic effect.",
           foggy: "Adds a fog-like effect to the image, reducing sharpness.",
-          film_noir: "Replicates the iconic look of Film Noir with high contrast and shadows.",
           nature: "Enhances natural tones and green hues, perfect for nature shots.",
           forest: "Boosts green colors and adds a forest-like atmosphere.",
           beach: "Adds warm tones, emphasizing the blue and golden colors typical in beach scenes.",
