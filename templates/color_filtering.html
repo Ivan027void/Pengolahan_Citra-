@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Edge Detection</title>
+    <title>Color Filtering</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='styles.css') }}"
@@ -32,52 +32,45 @@
 
     <section class="content">
       <div class="centered-title">
-        <h2>Edge Detection</h2>
+        <h2>Color Filtering</h2>
       </div>
 
       <div class="form-container">
         <form
-          action="/Edge_Detection"
+          action="/Color_Filtering"
           method="post"
           enctype="multipart/form-data"
         >
           <label for="file">Upload Image:</label>
-          <input type="file" name="file" accept="image/*" />
+          <input type="file" name="file" accept="image/*" required />
 
-          <p>Choose Detection Method:</p>
+          <p>Choose Color Filter:</p>
           <div class="radio-container">
             <input
               type="radio"
-              id="sobel"
-              name="detection_method"
-              value="sobel"
+              id="red"
+              name="color"
+              value="red"
               checked
             />
-            <label for="sobel">Sobel</label>
+            <label for="red">Red</label>
             <input
               type="radio"
-              id="canny"
-              name="detection_method"
-              value="canny"
+              id="green"
+              name="color"
+              value="green"
             />
-            <label for="canny">Canny</label>
+            <label for="green">Green</label>
             <input
               type="radio"
-              id="prewitt"
-              name="detection_method"
-              value="prewitt"
+              id="blue"
+              name="color"
+              value="blue"
             />
-            <label for="prewitt">Prewitt</label>
-            <input
-              type="radio"
-              id="laplacian"
-              name="detection_method"
-              value="laplacian"
-            />
-            <label for="laplacian">Laplacian</label>
+            <label for="blue">Blue</label>
           </div>
 
-          <button type="submit" class="btn">Upload</button>
+          <button type="submit" class="btn">Apply Filter</button>
         </form>
       </div>
 
@@ -92,15 +85,12 @@
           />
         </div>
         <div class="output-image">
-          <h3>Edge Detection Result</h3>
-          <img src="{{ edge_detected_image }}" alt="Edge Detection Result" />
+          <h3>Filtered Image ({{ color | capitalize }})</h3>
+          <img src="{{ filtered_image }}" alt="Filtered Image" />
         </div>
       </div>
       {% endif %}
     </section>
 
     <footer class="footer">
-      <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
-    </footer>
-  </body>
-</html>
+      <p>&copy; 2024
