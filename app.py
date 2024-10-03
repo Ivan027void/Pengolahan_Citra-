@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file
 from matplotlib.figure import Figure
 import cv2
 from io import BytesIO
@@ -7,6 +7,7 @@ import base64
 from werkzeug.utils import secure_filename
 import numpy as np
 import random
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -441,42 +442,6 @@ def image_effects_page():
                 effect_image = apply_retro(image)
             elif effect == 'noir':
                 effect_image = apply_noir(image)
-            # elif effect == 'kodachrome':
-            #     effect_image = apply_kodachrome(image)
-            # elif effect == 'vivid':
-            #     effect_image = apply_vivid(image) 
-            # elif effect == 'bright':
-            #     effect_image = apply_bright(image)
-            # elif effect == 'sunny':
-            #     effect_image = apply_sunny(image)
-            # elif effect == 'radiant':
-            #     effect_image = apply_radiant(image)
-            # elif effect == 'punchy':
-            #     effect_image = apply_punchy(image)
-            # elif effect == 'soft':
-            #     effect_image = apply_soft(image)
-            # elif effect == 'dreamy':
-            #     effect_image = apply_dreamy(image)
-            # elif effect == 'muted':
-            #     effect_image = apply_muted(image)
-            # elif effect == 'dark':
-            #     effect_image = apply_dark(image)
-            # elif effect == 'moody':
-            #     effect_image = apply_moody(image)
-            # elif effect == 'shadow':
-            #     effect_image = apply_shadow(image)
-            # elif effect == 'foggy':
-            #     effect_image = apply_foggy(image)
-            # elif effect == 'nature':
-            #     effect_image = apply_nature(image)
-            # elif effect == 'forest':
-            #     effect_image = apply_forest(image)
-            # elif effect == 'beach':
-            #     effect_image = apply_beach(image)
-            # elif effect == 'sky':
-            #     effect_image = apply_sky(image)
-            # elif effect == 'earth':
-            #     effect_image = apply_earth(image)
         
             # Convert the effect image to base64 using func
             effect_image_data = convert_image_to_base64(effect_image)
@@ -697,174 +662,166 @@ def apply_noir(image):
 
     return noir_image
 
-## new function here
+def has_watermark(original_image, watermarked_image, threshold=30):
+    # Convert images to numpy arrays
+    original = np.array(Image.open(original_image))
+    watermarked = np.array(Image.open(watermarked_image))
+
+    # Compute the absolute difference between the original and watermarked images
+    difference = cv2.absdiff(original, watermarked)
+
+    # Convert the difference image to grayscale
+    gray_diff = cv2.cvtColor(difference, cv2.COLOR_BGR2GRAY)
+
+    # Apply a threshold to create a binary image of the differences
+    _, thresh = cv2.threshold(gray_diff, threshold, 255, cv2.THRESH_BINARY)
+
+    # Count non-zero pixels in the thresholded image
+    non_zero_count = cv2.countNonZero(thresh)
+
+    return non_zero_count > 0  # Returns True if watermark is detected
+
+@app.route('/Add_Watermark', methods=['GET', 'POST'])
+def add_watermark_route():
+    if request.method == 'POST':
+        # Get the uploaded files (image and watermark) safely
+        image_file = request.files.get('image')
+        watermark_file = request.files.get('watermark')
+
+        if not image_file or not watermark_file:
+            # Handle the case where one of the files is missing
+            return "Please upload both the image and the watermark", 400
+
+        # Apply the watermark
+        img_with_watermark = add_watermark(image_file, watermark_file, opacity=0.4, scale=0.2)
+
+        # Save the watermarked image temporarily for downloading
+        watermarked_image_path = 'watermarked_image.png'
+        with open(watermarked_image_path, 'wb') as f:
+            f.write(base64.b64decode(img_with_watermark))
+
+        # Check if the watermark is present
+        watermark_exists = has_watermark(image_file, watermarked_image_path)
+
+        return render_template('add_watermark.html',
+                               original_image=image_file.filename,
+                               watermarked_image=f"data:image/png;base64,{img_with_watermark}",
+                               watermark_exists=watermark_exists,
+                               download_link=watermarked_image_path)
+
+    return render_template('add_watermark.html')
+# Function to overlay a watermark on an image and return base64 result
+def add_watermark(image, watermark, opacity=0.7, scale=0.2):
+    # Convert the input images to NumPy arrays
+    img = np.array(Image.open(image))
+    watermark_img = np.array(Image.open(watermark))
+
+    # Check if the images are grayscale and convert them to RGB
+    if len(img.shape) == 2:  # Grayscale image (no color channels)
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+    if len(watermark_img.shape) == 2:  # Grayscale watermark
+        watermark_img = cv2.cvtColor(watermark_img, cv2.COLOR_GRAY2RGB)
+
+    # Ensure both images are RGB (convert RGBA to RGB if necessary)
+    if img.shape[2] == 4:  # If main image has alpha channel, convert to RGB
+        img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+
+    # Get the main image dimensions
+    h_img, w_img = img.shape[:2]
+
+    # Resize the watermark
+    if watermark_img.shape[2] == 4:  # If watermark has an alpha channel (RGBA)
+        watermark_color = watermark_img[:, :, :3]  # Get RGB
+        watermark_alpha = watermark_img[:, :, 3]  # Get Alpha
+
+        # Resize the watermark color and alpha channels
+        watermark_resized = cv2.resize(watermark_color, (int(w_img * scale), int(h_img * scale)))
+        alpha_resized = cv2.resize(watermark_alpha, (int(w_img * scale), int(h_img * scale)))
+
+        # Normalize the alpha mask to [0, 1]
+        alpha_resized = alpha_resized / 255.0
+    else:
+        # No alpha channel, use default opacity
+        watermark_resized = cv2.resize(watermark_img, (int(w_img * scale), int(h_img * scale)))
+        alpha_resized = np.ones_like(watermark_resized[:, :, 0]) * opacity
+
+    # Get the watermark's dimensions after resizing
+    h_wmark, w_wmark = watermark_resized.shape[:2]
+
+    # Calculate center position for the watermark
+    center_x = (w_img - w_wmark) // 2
+    center_y = (h_img - h_wmark) // 2
+
+    # Extract the region of interest (ROI) from the main image at the center
+    roi = img[center_y:center_y + h_wmark, center_x:center_x + w_wmark]
+
+    # Ensure ROI and watermark are the same size
+    if roi.shape != watermark_resized.shape:
+        raise ValueError("ROI and watermark sizes don't match!")
+
+    # Blend the watermark with the ROI using the alpha channel and opacity
+    for c in range(0, 3):
+        roi[:, :, c] = (1 - alpha_resized) * roi[:, :, c] + alpha_resized * watermark_resized[:, :, c]
+
+    # Place the blended watermark back into the original image
+    img[center_y:center_y + h_wmark, center_x:center_x + w_wmark] = roi
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    # Encode the image to PNG and convert to base64 directly
+    success, encoded_image = cv2.imencode('.png', img)
+    if not success:
+        raise ValueError("Could not encode image")
+
+    # Convert the encoded image to base64
+    image_base64 = base64.b64encode(encoded_image).decode('utf-8')
+
+    return image_base64
+
+
+@app.route('/download')
+def download():
+    # Provide a download link for the watermarked image
+    return send_file('image.png', as_attachment=True)
+
+
+@app.route('/Inpainting', methods=['GET', 'POST'])
+def inpainting_page():
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            return redirect(request.url)
+        
+        if file:
+            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            # Load the image
+            image = cv2.imread(filepath)
+
+            # Create mask from POST request
+            if 'mask' in request.form:
+                mask_data = request.form['mask']
+                mask_array = np.frombuffer(base64.b64decode(mask_data), np.uint8)
+                mask = cv2.imdecode(mask_array, cv2.IMREAD_GRAYSCALE)
+
+                # Apply inpainting
+                restored_image = cv2.inpaint(image, mask, 3, cv2.INPAINT_TELEA)
+
+                # Convert the restored image to base64 to display on HTML
+                _, buffer = cv2.imencode('.png', restored_image)
+                restored_image_data = base64.b64encode(buffer).decode('ascii')
+
+                return render_template('inpainting.html',
+                                       original_image=get_image_url(filename),
+                                       restored_image=f"data:image/png;base64,{restored_image_data}",
+                                       mask_created=True)
+
+    return render_template('inpainting.html')
 
 
 
 ### this is unused function for now
-# Utility function to apply kodachrome effect
-def apply_kodachrome(image):
-    # Create a lookup table (LUT) for each channel (B, G, R)
-    kodachrome_lut = np.zeros((256, 1, 3), dtype=np.uint8)
-    
-    # Define a vibrant Kodachrome-like color transformation for each channel
-    for i in range(256):
-        kodachrome_lut[i, 0, 0] = min(255, int(i * 1.1))   # Blue channel boost
-        kodachrome_lut[i, 0, 1] = min(255, int(i * 1.05))  # Green channel slight boost
-        kodachrome_lut[i, 0, 2] = min(255, int(i * 1.2))   # Red channel strong boost
-    
-    # Apply the LUT to the image
-    kodachrome_image = cv2.LUT(image, kodachrome_lut)
-    
-    # Optionally boost the contrast and saturation further
-    kodachrome_image = cv2.convertScaleAbs(kodachrome_image, alpha=1.5, beta=0)
-    
-    return kodachrome_image
-
-# Utility function to apply vivid effect
-def apply_vivid(image):
-    # Increase saturation and contrast
-    vivid_image = cv2.convertScaleAbs(image, alpha=1.5, beta=0)
-    vivid_image = cv2.cvtColor(vivid_image, cv2.COLOR_BGR2HSV)
-    vivid_image[:, :, 1] = vivid_image[:, :, 1] * 1.5
-    vivid_image[:, :, 2] = vivid_image[:, :, 2] * 1.5
-    vivid_image = cv2.cvtColor(vivid_image, cv2.COLOR_HSV2BGR)
-    return vivid_image
-
-# Utility function to apply bright effect
-def apply_bright(image):
-    # Increase brightness
-    bright_image = cv2.convertScaleAbs(image, alpha=1, beta=50)
-    # alpha is the contrast factor, beta is the brightness factor
-    return bright_image
-
-# Utility function to apply sunny effect
-def apply_sunny(image):
-    # Increase brightness and contrast, add a slight warmth
-    sunny_image = cv2.convertScaleAbs(image, alpha=1.2, beta=30)
-    sunny_image = cv2.cvtColor(sunny_image, cv2.COLOR_BGR2HSV)
-    sunny_image[:, :, 0] = sunny_image[:, :, 0] + 10
-    sunny_image = cv2.cvtColor(sunny_image, cv2.COLOR_HSV2BGR)
-    return sunny_image
-
-# Utility function to apply radiant effect
-def apply_radiant(image):
-    # Increase saturation, brightness, and contrast
-    radiant_image = cv2.convertScaleAbs(image, alpha=1.5, beta=30)
-    radiant_image = cv2.cvtColor(radiant_image, cv2.COLOR_BGR2HSV)
-    radiant_image[:, :, 1] = radiant_image[:, :, 1] * 1.5
-    radiant_image[:, :, 2] = radiant_image[:, :, 2] * 1.5
-    radiant_image = cv2.cvtColor(radiant_image, cv2.COLOR_HSV2BGR)
-    return radiant_image
-
-# Utility function to apply punchy effect
-def apply_punchy(image):
-    # Increase contrast and saturation, reduce brightness slightly
-    punchy_image = cv2.convertScaleAbs(image, alpha=1.5, beta=-10)
-    punchy_image = cv2.cvtColor(punchy_image, cv2.COLOR_BGR2HSV)
-    punchy_image[:, :, 1] = punchy_image[:, :, 1] * 1.5
-    punchy_image = cv2.cvtColor(punchy_image, cv2.COLOR_HSV2BGR)
-    return punchy_image
-
-# Utility function to apply soft effect
-def apply_soft(image):
-    # Apply Gaussian blur
-    soft_image = cv2.GaussianBlur(image, (5, 5), 0)
-    return soft_image
-
-# Utility function to apply dreamy effect
-def apply_dreamy(image):
-    # Apply Gaussian blur and increase brightness
-    dreamy_image = cv2.GaussianBlur(image, (7, 7), 0)
-    dreamy_image = cv2.convertScaleAbs(dreamy_image,alpha=1.1, beta=20)
-    return dreamy_image
-
-# Utility function to apply muted effect
-def apply_muted(image):
-  # Reduce saturation and keep brightness
-  muted_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-  muted_image[:, :, 1] = muted_image[:, :, 1] * 0.7
-  muted_image = cv2.cvtColor(muted_image, cv2.COLOR_HSV2BGR)
-  return muted_image
-
-# Utility function to apply dark effect
-def apply_dark(image):
-  # Reduce brightness and increase contrast slightly
-  dark_image = cv2.convertScaleAbs(image, alpha=0.7, beta=10)
-  # reduce the brightness of the image 
-  return dark_image
-
-# Utility function to apply moody effect
-def apply_moody(image):
-  # Reduce saturation, increase contrast, and shift hue slightly towards blue
-  moody_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-  moody_image[:, :, 1] = moody_image[:, :, 1] * 0.7 # reduce the saturation
-  moody_image[:, :, 0] = moody_image[:, :, 0] - 10 # shift hue towards blue
-  moody_image = cv2.cvtColor(moody_image, cv2.COLOR_HSV2BGR)
-  moody_image = cv2.convertScaleAbs(moody_image, alpha=1.1, beta=15) # increase contrast
-  return moody_image
-
-# Utility function to apply shadow effect
-def apply_shadow(image):
-  # Reduce brightness significantly and add a slight vignette
-  shadow_image = cv2.convertScaleAbs(image, alpha=0.5, beta=0)
-  height, width = image.shape[:2]
-  kernel_x = cv2.getGaussianKernel(width, width / 4) # create a Gaussian kernel
-  kernel_y = cv2.getGaussianKernel(height, height / 4) # create a Gaussian kernel
-  kernel = kernel_y * kernel_x.T # create a 2D Gaussian kernel
-  vignette_mask = 1 - 255 * kernel / np.linalg.norm(kernel) # create a vignette mask
-  for i in range(3):
-    image[:, :, i] = image[:, :, i] * vignette_mask # apply the vignette mask to each channel
-  return shadow_image
-
-# Utility function to apply foggy effect
-def apply_foggy(image):
-  # Reduce contrast, add white noise, and blur slightly
-  foggy_image = cv2.convertScaleAbs(image, alpha=0.7, beta=0)
-  noise_mean = 0
-  noise_sigma = 25  # Standard deviation of noise
-  noise = np.random.normal(noise_mean, noise_sigma, image.shape).astype(np.uint8)
-  foggy_image = cv2.add(foggy_image, noise)
-  foggy_image = cv2.GaussianBlur(foggy_image, (3, 3), 0)
-  return foggy_image
-
-# Utility function to apply nature effect
-def apply_nature(image):
-    # Create a green tint filter
-    green_tint = np.zeros_like(image, dtype=np.uint8)
-    green_tint[:, :] = [0, 128, 0]  # Green color
-    # Blend the original image with the green tint
-    tinted_image = cv2.addWeighted(image, 0.6, green_tint, 0.4, 0)
-    return tinted_image
-
-def apply_forest(image):
-    # Dark green filter for forest
-    forest_filter = np.zeros_like(image, dtype=np.uint8)
-    forest_filter[:, :] = [0, 200, 0]  # Dark green
-    filtered_image = cv2.add(image, forest_filter)
-    return filtered_image
-
-def apply_beach(image):
-    # Light golden color for beach vibes
-    beach_filter = np.zeros_like(image, dtype=np.uint8)
-    beach_filter[:, :] = [204,255, 255]  # Light golden
-    filtered_image = cv2.addWeighted(image, 0.7, beach_filter, 0.3, 0)
-    return filtered_image
-
-def apply_sky(image):
-    # Light blue tint for sky
-    sky_filter = np.zeros_like(image, dtype=np.uint8)
-    sky_filter[:, :] = [255, 204,204 ]  # Light blue
-    filtered_image = cv2.addWeighted(image, 0.5, sky_filter, 0.5, 0)
-    return filtered_image
-
-def apply_earth(image):
-    # Brown filter for earth
-    earth_filter = np.zeros_like(image, dtype=np.uint8)
-    earth_filter[:, :] = [0, 40,80 ]  # Earthy brown
-    filtered_image = cv2.add(image, earth_filter)
-    return filtered_image
-
 ## fitur buat buat /bisa di akses di /Collage tidak ada di home
 # Utility function to pad an image to a specific size
 def pad_image(image, target_height, target_width):

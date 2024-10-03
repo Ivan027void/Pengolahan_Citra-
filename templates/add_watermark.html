@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Watermark</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+    <header>
+        <p class="app-name">Pixel Guard</p>
+        <nav class="navbar">
+            <button><a href="/">Home</a></button>
+            <button><a href="/about">About Us</a></button>
+            <div class="dropdown">
+                <button class="dropbtn">Features</button>
+                <div class="dropdown-content">
+                    <a href="/Add_Watermark">Add Watermark</a>
+                    <!-- Add other feature links here -->
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <section class="content">
+        <div class="centered-title">
+            <h2>Add Watermark</h2>
+        </div>
+
+        <div class="form-container">
+            <form action="/Add_Watermark" method="post" enctype="multipart/form-data">
+              <label for="image">Select Image:</label>
+              <input type="file" name="image" required><br><br>
+          
+              <label for="watermark">Select Watermark Image:</label>
+              <input type="file" name="watermark" required><br><br>
+          
+              <button type="submit">Add Watermark</button>
+          
+            </form>
+        </div>
+
+        {% if original_image %}
+        <div class="output-container">
+            <div class="output-image">
+                <h3>Original Image</h3>
+                <img src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}" alt="Original Image" width="400" />
+            </div>
+            <div class="output-image">
+                <h3>Watermarked Image</h3>
+                <img src="{{ watermarked_image }}" alt="Watermarked Image" />
+            </div>
+        </div>
+        <div class="watermark-status">
+          {% if watermark_exists %}
+              <p>The watermark exists on this image.</p>
+          {% else %}
+              <p>No watermark detected in this image.</p>
+          {% endif %}
+        </div>
+  
+        <div style="text-align: center;">
+            <a href="{{ url_for('download') }}" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Download Watermarked Image</a>
+        </div>
+        {% endif %}
+    </section>
+
+    <footer class="footer">
+        <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+    </footer>
+</body>
+</html>
