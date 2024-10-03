@@ -351,5 +351,186 @@ def segment_image():
 
     return render_template('segmentation_image.html')  # Render upload form for GET request
 
+# Utility function to pad an image to a specific size
+def pad_image(image, target_height, target_width):
+    height, width = image.shape[:2]
+    
+    # Calculate the padding values for height and width
+    pad_height = max(0, target_height - height)
+    pad_width = max(0, target_width - width)
+
+    # Pad the image with black if necessary
+    padded_image = cv2.copyMakeBorder(image, 0, pad_height, 0, pad_width, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+    return padded_image
+
+# Utility function to create a collage from a list of images
+def create_collage(image_paths, layout='grid', order=None):
+    images = [cv2.imread(path) for path in image_paths]
+
+    # Resize all images to the smallest size
+    min_height = min(image.shape[0] for image in images)
+    min_width = min(image.shape[1] for image in images)
+
+    # Resize images
+    resized_images = [cv2.resize(image, (min_width, min_height)) for image in images]
+
+    # If an order is provided, rearrange the images
+    if order:
+        resized_images = [resized_images[i] for i in order]
+
+    if layout == 'grid':
+        num_images = len(resized_images)
+        num_cols = int(np.ceil(np.sqrt(num_images)))
+        num_rows = int(np.ceil(num_images / num_cols))
+
+        rows = []
+        for i in range(0, num_images, num_cols):
+            row_images = resized_images[i:i + num_cols]
+            if len(row_images) < num_cols:
+                blank_image = np.zeros_like(resized_images[0])
+                row_images += [blank_image] * (num_cols - len(row_images))
+            rows.append(np.hstack(row_images))
+        collage = np.vstack(rows)
+
+    elif layout == 'horizontal':
+        max_height = max(image.shape[0] for image in resized_images)
+        padded_images = [pad_image(img, max_height, img.shape[1]) for img in resized_images]
+        collage = np.hstack(padded_images)
+
+    elif layout == 'vertical':
+        max_width = max(image.shape[1] for image in resized_images)
+        padded_images = [pad_image(img, img.shape[0], max_width) for img in resized_images]
+        collage = np.vstack(padded_images)
+
+    elif layout == 'L-shaped':
+        half = len(resized_images) // 2
+        top = np.hstack(resized_images[:half])
+        
+        # Pad bottom images to match the width of the top row
+        bottom_images = resized_images[half:]
+        padded_bottom_images = [pad_image(img, min_height, top.shape[1]) for img in bottom_images]
+        bottom = np.vstack(padded_bottom_images)
+        collage = np.vstack([top, bottom])
+
+    elif layout == 'checkerboard':
+        num_images = len(resized_images)
+        num_cols = 2  # Fixed to 2 columns for checkerboard
+        num_rows = int(np.ceil(num_images / num_cols))
+
+        rows = []
+        for i in range(0, num_images, num_cols):
+            row_images = resized_images[i:i + num_cols]
+            if len(row_images) < num_cols:
+                blank_image = np.zeros_like(resized_images[0])
+                row_images += [blank_image] * (num_cols - len(row_images))
+            rows.append(np.hstack(row_images))
+        collage = np.vstack(rows)
+
+    elif layout == 'diagonal-tl-br':
+        rows = []
+        for idx in range(len(resized_images)):
+            # Create a diagonal effect with padding
+            padding = [np.zeros_like(resized_images[0])] * idx
+            padded_row = np.hstack(padding + [resized_images[idx]])
+            rows.append(padded_row)
+
+        # Pad the right side to ensure all rows have the same width
+        max_width = max(row.shape[1] for row in rows)
+        collage = np.vstack([pad_image(row, min_height, max_width) for row in rows])
+
+    elif layout == 'diagonal-tr-bl':
+        rows = []
+        num_images = len(resized_images)
+
+        # Create a blank canvas to hold the collage
+        blank_row_height = min_height  # Height of each row
+        blank_row_width = num_images * min_width  # Total width of the row
+        collage_height = blank_row_height * num_images  # Total height for all rows
+
+        # Initialize an empty collage with the proper height and width
+        collage = np.zeros((collage_height, blank_row_width, 3), dtype=np.uint8)
+
+        # Fill the collage with images according to the specified diagonal pattern
+        for idx in range(num_images):
+            # Calculate the row and column position for each image
+            row_index = idx * min_height
+            col_index = (num_images - 1 - idx) * min_width
+
+            # Place the image in the correct position
+            collage[row_index:row_index + min_height, col_index:col_index + min_width] = resized_images[idx]
+
+    return collage
+
+
+# Collage route
+@app.route('/Collage', methods=['GET', 'POST'])
+def collage_page():
+    if request.method == 'POST':
+        # Check if 'files' exist in the request
+        if 'files' not in request.files:
+            return redirect(request.url)
+        
+        files = request.files.getlist('files')
+
+        # Ensure at least two files are uploaded
+        if len(files) < 2:
+            return render_template('collage.html', error='Please upload at least two images.')
+        
+        # Get the selected layout and order
+        layout = request.form.get('layout')
+        order_input = request.form.get('order')
+
+        # Convert the input string to a list of integers for order
+        if order_input:
+            try:
+                order = list(map(int, order_input.split(',')))
+            except ValueError:
+                return render_template('collage.html', error='Invalid order format. Please use integers separated by commas.')
+        else:
+            order = None  # Default to None if no order is provided
+
+        # Save the uploaded files
+        filenames = [save_uploaded_file(file, app.config['UPLOAD_FOLDER']) for file in files]
+        image_paths = [os.path.join(app.config['UPLOAD_FOLDER'], filename) for filename in filenames]
+
+        # Create the collage
+        collage = create_collage(image_paths, layout, order)
+
+        # Convert the collage to base64 for display
+        collage_base64 = convert_image_to_base64(collage)
+
+        return render_template('collage.html',
+                               collage_image=f"data:image/png;base64,{collage_base64}",
+                               filenames=filenames,
+                               layout=layout,
+                               error=None)
+
+    return render_template('collage.html', error=None)
+
+# Collage layout change route
+@app.route('/Collage/change_layout', methods=['POST'])
+def change_layout():
+    layout = request.form.get('new_layout')
+    filenames = request.form.get('filenames').split(',')
+    order = request.form.getlist('order')  # Optional order input
+
+    # Generate file paths again
+    image_paths = [os.path.join(app.config['UPLOAD_FOLDER'], filename) for filename in filenames]
+
+    # Rearrange order if provided
+    order = list(map(int, order)) if order else None
+
+    # Create the collage with the new layout
+    collage = create_collage(image_paths, layout, order)
+
+    # Convert collage to base64
+    collage_base64 = convert_image_to_base64(collage)
+
+    return render_template('collage.html',
+                           collage_image=f"data:image/png;base64,{collage_base64}",
+                           layout=layout,
+                           filenames=filenames,
+                           error=None)
+
 if __name__ == "__main__":
     app.run(debug=True)

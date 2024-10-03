@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Photo Collage</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <script>
+      // JavaScript function to validate file upload and image order
+      function validateForm() {
+        const fileInput = document.getElementById("files");
+        const files = fileInput.files;
+
+        // If fewer than 2 files are uploaded, show a warning and prevent form submission
+        if (files.length < 2) {
+          alert("Please upload at least two images.");
+          return false;
+        }
+
+        // Validate image order input
+        const orderInput = document.getElementById("order");
+        const order = orderInput.value.split(",").map(Number);
+        const uniqueOrder = new Set(order);
+        
+        // Check if order is valid
+        if (order.some(index => index < 0 || index >= files.length) || uniqueOrder.size !== order.length) {
+          alert("Please enter a valid order for the images (0-based index).");
+          return false;
+        }
+
+        return true; // Proceed with form submission if validation passes
+      }
+    </script>
+  </head>
+  <body>
+    <header>
+      <p class="app-name">Pixel Guard</p>
+      <nav class="navbar">
+        <button><a href="/">Home</a></button>
+        <button><a href="/about">About Us</a></button>
+        <div class="dropdown">
+          <button class="dropbtn">Features</button>
+          <div class="dropdown-content">
+            <a href="/Histogram_Equal">Histogram Equalization</a>
+            <a href="/Face_Blurring">Face Blurring</a>
+            <a href="/Face_Detection">Face Detection</a>
+            <a href="/Edge_Detection">Edge Detection</a>
+            <a href="/Segment_Image">Image Segmentation</a>
+            <a href="/Collage">Photo Collage</a>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <section class="content">
+      <div class="centered-title">
+        <h2>Create Your Photo Collage</h2>
+      </div>
+
+      <div class="form-container">
+        {% if error %}
+          <p class="error-message">{{ error }}</p>
+        {% endif %}
+        <form action="/Collage" method="post" enctype="multipart/form-data" onsubmit="return validateForm();">
+          <label for="files">Upload Images (minimum 2):</label>
+          <input type="file" name="files" id="files" multiple required />
+          <br><br>
+
+          <label for="layout">Choose Collage Layout:</label>
+          <select name="layout" id="layout" required>
+            <option value="grid">Grid</option>
+            <option value="horizontal">Horizontal</option>
+            <option value="vertical">Vertical</option>
+            <option value="L-shaped">L-Shaped</option>
+            <option value="checkerboard">Checkerboard</option>
+            <option value="diagonal-tl-br">Diagonal TL to BR</option>
+            <option value="diagonal-tr-bl">Diagonal TR to BL</option>
+          </select>
+          <br><br>
+
+          <label for="order">Enter Image Order (comma-separated, 0-based indices):</label>
+          <input type="text" id="order" name="order" placeholder="e.g. 0,1,2" />
+          <br><br>
+
+          <button type="submit">Create Collage</button>
+        </form>
+      </div>
+
+      {% if collage_image %}
+      <div class="output-container">
+        <div class="output-image">
+          <h3>Your Collage</h3>
+          <img src="{{ collage_image }}" alt="Photo Collage" width="500" />
+        </div>
+
+        <div class="form-container">
+          <h3>Change Layout Without Re-uploading</h3>
+          <form action="/Collage/change_layout" method="post">
+            <input type="hidden" name="filenames" value="{{ ','.join(filenames) }}">
+            <label for="new_layout">Select New Layout:</label>
+            <select name="new_layout" id="new_layout" required>
+              <option value="grid">Grid</option>
+              <option value="horizontal">Horizontal</option>
+              <option value="vertical">Vertical</option>
+              <option value="L-shaped">L-Shaped</option>
+              <option value="checkerboard">Checkerboard</option>
+              <option value="diagonal-tl-br">Diagonal TL to BR</option>
+              <option value="diagonal-tr-bl">Diagonal TR to BL</option>
+            </select>
+            <br /><br />
+            <button type="submit">Change Layout</button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    <footer class="footer">
+      <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+    </footer>
+  </body>
+</html>
