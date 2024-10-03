@@ -441,42 +441,42 @@ def image_effects_page():
                 effect_image = apply_retro(image)
             elif effect == 'noir':
                 effect_image = apply_noir(image)
-            elif effect == 'kodachrome':
-                effect_image = apply_kodachrome(image)
-            elif effect == 'vivid':
-                effect_image = apply_vivid(image) 
-            elif effect == 'bright':
-                effect_image = apply_bright(image)
-            elif effect == 'sunny':
-                effect_image = apply_sunny(image)
-            elif effect == 'radiant':
-                effect_image = apply_radiant(image)
-            elif effect == 'punchy':
-                effect_image = apply_punchy(image)
-            elif effect == 'soft':
-                effect_image = apply_soft(image)
-            elif effect == 'dreamy':
-                effect_image = apply_dreamy(image)
-            elif effect == 'muted':
-                effect_image = apply_muted(image)
-            elif effect == 'dark':
-                effect_image = apply_dark(image)
-            elif effect == 'moody':
-                effect_image = apply_moody(image)
-            elif effect == 'shadow':
-                effect_image = apply_shadow(image)
-            elif effect == 'foggy':
-                effect_image = apply_foggy(image)
-            elif effect == 'nature':
-                effect_image = apply_nature(image)
-            elif effect == 'forest':
-                effect_image = apply_forest(image)
-            elif effect == 'beach':
-                effect_image = apply_beach(image)
-            elif effect == 'sky':
-                effect_image = apply_sky(image)
-            elif effect == 'earth':
-                effect_image = apply_earth(image)
+            # elif effect == 'kodachrome':
+            #     effect_image = apply_kodachrome(image)
+            # elif effect == 'vivid':
+            #     effect_image = apply_vivid(image) 
+            # elif effect == 'bright':
+            #     effect_image = apply_bright(image)
+            # elif effect == 'sunny':
+            #     effect_image = apply_sunny(image)
+            # elif effect == 'radiant':
+            #     effect_image = apply_radiant(image)
+            # elif effect == 'punchy':
+            #     effect_image = apply_punchy(image)
+            # elif effect == 'soft':
+            #     effect_image = apply_soft(image)
+            # elif effect == 'dreamy':
+            #     effect_image = apply_dreamy(image)
+            # elif effect == 'muted':
+            #     effect_image = apply_muted(image)
+            # elif effect == 'dark':
+            #     effect_image = apply_dark(image)
+            # elif effect == 'moody':
+            #     effect_image = apply_moody(image)
+            # elif effect == 'shadow':
+            #     effect_image = apply_shadow(image)
+            # elif effect == 'foggy':
+            #     effect_image = apply_foggy(image)
+            # elif effect == 'nature':
+            #     effect_image = apply_nature(image)
+            # elif effect == 'forest':
+            #     effect_image = apply_forest(image)
+            # elif effect == 'beach':
+            #     effect_image = apply_beach(image)
+            # elif effect == 'sky':
+            #     effect_image = apply_sky(image)
+            # elif effect == 'earth':
+            #     effect_image = apply_earth(image)
         
             # Convert the effect image to base64 using func
             effect_image_data = convert_image_to_base64(effect_image)
@@ -588,7 +588,7 @@ def apply_duotone(image):
     return duotone_image.astype(np.uint8)
 
 # Utility function to apply split tone effect
-def apply_split_tone(image, highlight_color=(0, 255, 255), shadow_color=(255, 0, 0)):
+def apply_split_tone(image, highlight_color=(0, 195, 255), shadow_color=(0, 100, 0)):
     # Convert to float for precise manipulation
     split_tone_image = image.astype(np.float32) / 255.0
 
@@ -697,6 +697,11 @@ def apply_noir(image):
 
     return noir_image
 
+## new function here
+
+
+
+### this is unused function for now
 # Utility function to apply kodachrome effect
 def apply_kodachrome(image):
     # Create a lookup table (LUT) for each channel (B, G, R)
