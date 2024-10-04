@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image Segmentation</title>
+    <title>Image Comparison Tools</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
   </head>
   <body>
@@ -20,8 +20,6 @@
             <a href="/Face_Detection">Face Detection</a>
             <a href="/Edge_Detection">Edge Detection</a>
             <a href="/Segment_Image">Image Segmentation</a>
-            <a href="/Color_Filtering">Color Filtering</a>
-            <a href="/Image_Effects">Image Effects</a>
             <a href="/Image_Comparison">Image Comparison Tools</a>
           </div>
         </div>
@@ -30,44 +28,44 @@
 
     <section class="content">
       <div class="centered-title">
-        <h2>Vegetaion Image Segmentation</h2>
+        <h2>Image Comparison Tools</h2>
       </div>
 
       <div class="form-container">
-        <form action="/Segment_Image" method="post" enctype="multipart/form-data">
-          <label for="file">Upload Satellite Image:</label>
-          <input type="file" name="file" id="file" required />
+        <form action="/Image_Comparison" method="post" enctype="multipart/form-data">
+          <label for="file1">Upload First Image:</label>
+          <input type="file" name="file1" id="file1" required />
           <br /><br />
-          <button type="submit">Segment Image</button>
+          <label for="file2">Upload Second Image:</label>
+          <input type="file" name="file2" id="file2" required />
+          <br /><br />
+          <button type="submit">Compare Images</button>
         </form>
       </div>
 
-      {% if original_image %}
+      {% if original_image1 and original_image2 %}
       <div class="output-container">
         <div class="output-image">
-          <h3>Original Image</h3>
+          <h3>First Image</h3>
           <img
-            src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}"
-            alt="Original Image"
+            src="{{ url_for('static', filename='uploads/' + original_image1.split('/')[-1]) }}"
+            alt="First Image"
             width="400"
           />
         </div>
         <div class="output-image">
-          <h3>Segmented Image (With Vegetation)</h3>
+          <h3>Second Image</h3>
           <img
-            src="{{ plants_image }}"
-            alt="Segmented Image with Vegetation"
+            src="{{ url_for('static', filename='uploads/' + original_image2.split('/')[-1]) }}"
+            alt="Second Image"
             width="400"
           />
         </div>
-        <div class="output-image">
-          <h3>Segmented Image (Without Vegetation)</h3>
-          <img
-            src="{{ non_plants_image }}"
-            alt="Segmented Image without Vegetation"
-            width="400"
-          />
-        </div>
+        <div class="output-container">
+            <h3>Image Comparison Results</h3>
+            <p><strong>Mean Squared Error (MSE):</strong> {{ mse }}</p>
+            <p><strong>Structural Similarity Index (SSIM):</strong> {{ ssim }}</p>
+        </div>        
       </div>
       {% endif %}
     </section>

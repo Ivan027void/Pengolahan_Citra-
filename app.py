@@ -1003,5 +1003,55 @@ def change_layout():
                            filenames=filenames,
                            error=None)
 
+from skimage.metrics import structural_similarity as ssim
+import numpy as np
+
+# Image Comparison route
+@app.route('/Image_Comparison', methods=['GET', 'POST'])
+def image_comparison_page():
+    if request.method == 'POST':
+        if 'file1' not in request.files or 'file2' not in request.files:
+            return redirect(request.url)
+
+        file1 = request.files['file1']
+        file2 = request.files['file2']
+
+        if file1.filename == '' or file2.filename == '':
+            return redirect(request.url)
+
+        if file1 and file2:
+            filename1 = save_uploaded_file(file1, app.config['UPLOAD_FOLDER'])
+            filename2 = save_uploaded_file(file2, app.config['UPLOAD_FOLDER'])
+            
+            filepath1 = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
+            filepath2 = os.path.join(app.config['UPLOAD_FOLDER'], filename2)
+
+            image1 = cv2.imread(filepath1)
+            image2 = cv2.imread(filepath2)
+
+            image1 = cv2.resize(image1, (image2.shape[1], image2.shape[0]))
+
+            mse_value, ssim_value = compare_images(image1, image2)
+
+            return render_template('image_comparison.html',
+                                   original_image1=get_image_url(filename1),
+                                   original_image2=get_image_url(filename2),
+                                   mse=mse_value, ssim=ssim_value)
+
+    return render_template('image_comparison.html')
+
+# Function to calculate MSE and SSIM
+def compare_images(image1, image2):
+    gray_image1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY) 
+    gray_image2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY) 
+
+    # Calculate MSE (Mean Squared Error)
+    mse = np.mean((gray_image1 - gray_image2) ** 2)
+
+    # Calculate SSIM (Structural Similarity Index) 
+    ssim_index = ssim(gray_image1, gray_image2) 
+
+    return mse, ssim_index
+
 if __name__ == "__main__":
     app.run(debug=True)
