@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 import numpy as np
 import random
 from PIL import Image
+from skimage.metrics import structural_similarity as ssim
 
 app = Flask(__name__)
 
@@ -662,125 +663,53 @@ def apply_noir(image):
 
     return noir_image
 
-def has_watermark(original_image, watermarked_image, threshold=30):
-    # Convert images to numpy arrays
-    original = np.array(Image.open(original_image))
-    watermarked = np.array(Image.open(watermarked_image))
 
-    # Compute the absolute difference between the original and watermarked images
-    difference = cv2.absdiff(original, watermarked)
-
-    # Convert the difference image to grayscale
-    gray_diff = cv2.cvtColor(difference, cv2.COLOR_BGR2GRAY)
-
-    # Apply a threshold to create a binary image of the differences
-    _, thresh = cv2.threshold(gray_diff, threshold, 255, cv2.THRESH_BINARY)
-
-    # Count non-zero pixels in the thresholded image
-    non_zero_count = cv2.countNonZero(thresh)
-
-    return non_zero_count > 0  # Returns True if watermark is detected
-
-@app.route('/Add_Watermark', methods=['GET', 'POST'])
-def add_watermark_route():
+# Image Comparison route
+@app.route('/Image_Comparison', methods=['GET', 'POST'])
+def image_comparison_page():
     if request.method == 'POST':
-        # Get the uploaded files (image and watermark) safely
-        image_file = request.files.get('image')
-        watermark_file = request.files.get('watermark')
+        if 'file1' not in request.files or 'file2' not in request.files:
+            return redirect(request.url)
 
-        if not image_file or not watermark_file:
-            # Handle the case where one of the files is missing
-            return "Please upload both the image and the watermark", 400
+        file1 = request.files['file1']
+        file2 = request.files['file2']
 
-        # Apply the watermark
-        img_with_watermark = add_watermark(image_file, watermark_file, opacity=0.4, scale=0.2)
+        if file1.filename == '' or file2.filename == '':
+            return redirect(request.url)
 
-        # Save the watermarked image temporarily for downloading
-        watermarked_image_path = 'watermarked_image.png'
-        with open(watermarked_image_path, 'wb') as f:
-            f.write(base64.b64decode(img_with_watermark))
+        if file1 and file2:
+            filename1 = save_uploaded_file(file1, app.config['UPLOAD_FOLDER'])
+            filename2 = save_uploaded_file(file2, app.config['UPLOAD_FOLDER'])
+            
+            filepath1 = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
+            filepath2 = os.path.join(app.config['UPLOAD_FOLDER'], filename2)
 
-        # Check if the watermark is present
-        watermark_exists = has_watermark(image_file, watermarked_image_path)
+            image1 = cv2.imread(filepath1)
+            image2 = cv2.imread(filepath2)
 
-        return render_template('add_watermark.html',
-                               original_image=image_file.filename,
-                               watermarked_image=f"data:image/png;base64,{img_with_watermark}",
-                               watermark_exists=watermark_exists,
-                               download_link=watermarked_image_path)
+            image1 = cv2.resize(image1, (image2.shape[1], image2.shape[0]))
 
-    return render_template('add_watermark.html')
-# Function to overlay a watermark on an image and return base64 result
-def add_watermark(image, watermark, opacity=0.7, scale=0.2):
-    # Convert the input images to NumPy arrays
-    img = np.array(Image.open(image))
-    watermark_img = np.array(Image.open(watermark))
+            mse_value, ssim_value = compare_images(image1, image2)
 
-    # Check if the images are grayscale and convert them to RGB
-    if len(img.shape) == 2:  # Grayscale image (no color channels)
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    if len(watermark_img.shape) == 2:  # Grayscale watermark
-        watermark_img = cv2.cvtColor(watermark_img, cv2.COLOR_GRAY2RGB)
+            return render_template('image_comparison.html',
+                                   original_image1=get_image_url(filename1),
+                                   original_image2=get_image_url(filename2),
+                                   mse=mse_value, ssim=ssim_value)
 
-    # Ensure both images are RGB (convert RGBA to RGB if necessary)
-    if img.shape[2] == 4:  # If main image has alpha channel, convert to RGB
-        img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+    return render_template('image_comparison.html')
 
-    # Get the main image dimensions
-    h_img, w_img = img.shape[:2]
+# Function to calculate MSE and SSIM
+def compare_images(image1, image2):
+    gray_image1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY) 
+    gray_image2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY) 
 
-    # Resize the watermark
-    if watermark_img.shape[2] == 4:  # If watermark has an alpha channel (RGBA)
-        watermark_color = watermark_img[:, :, :3]  # Get RGB
-        watermark_alpha = watermark_img[:, :, 3]  # Get Alpha
+    # Calculate MSE (Mean Squared Error)
+    mse = np.mean((gray_image1 - gray_image2) ** 2)
 
-        # Resize the watermark color and alpha channels
-        watermark_resized = cv2.resize(watermark_color, (int(w_img * scale), int(h_img * scale)))
-        alpha_resized = cv2.resize(watermark_alpha, (int(w_img * scale), int(h_img * scale)))
+    # Calculate SSIM (Structural Similarity Index) 
+    ssim_index = ssim(gray_image1, gray_image2) 
 
-        # Normalize the alpha mask to [0, 1]
-        alpha_resized = alpha_resized / 255.0
-    else:
-        # No alpha channel, use default opacity
-        watermark_resized = cv2.resize(watermark_img, (int(w_img * scale), int(h_img * scale)))
-        alpha_resized = np.ones_like(watermark_resized[:, :, 0]) * opacity
-
-    # Get the watermark's dimensions after resizing
-    h_wmark, w_wmark = watermark_resized.shape[:2]
-
-    # Calculate center position for the watermark
-    center_x = (w_img - w_wmark) // 2
-    center_y = (h_img - h_wmark) // 2
-
-    # Extract the region of interest (ROI) from the main image at the center
-    roi = img[center_y:center_y + h_wmark, center_x:center_x + w_wmark]
-
-    # Ensure ROI and watermark are the same size
-    if roi.shape != watermark_resized.shape:
-        raise ValueError("ROI and watermark sizes don't match!")
-
-    # Blend the watermark with the ROI using the alpha channel and opacity
-    for c in range(0, 3):
-        roi[:, :, c] = (1 - alpha_resized) * roi[:, :, c] + alpha_resized * watermark_resized[:, :, c]
-
-    # Place the blended watermark back into the original image
-    img[center_y:center_y + h_wmark, center_x:center_x + w_wmark] = roi
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    # Encode the image to PNG and convert to base64 directly
-    success, encoded_image = cv2.imencode('.png', img)
-    if not success:
-        raise ValueError("Could not encode image")
-
-    # Convert the encoded image to base64
-    image_base64 = base64.b64encode(encoded_image).decode('utf-8')
-
-    return image_base64
-
-
-@app.route('/download')
-def download():
-    # Provide a download link for the watermarked image
-    return send_file('watermarked_image.png', as_attachment=True)
+    return mse, ssim_index
 
 @app.route('/upload', methods=['POST'])
 def upload_image():
@@ -1013,55 +942,125 @@ def change_layout():
                            filenames=filenames,
                            error=None)
 
-from skimage.metrics import structural_similarity as ssim
-import numpy as np
+def has_watermark(original_image, watermarked_image, threshold=30):
+    # Convert images to numpy arrays
+    original = np.array(Image.open(original_image))
+    watermarked = np.array(Image.open(watermarked_image))
 
-# Image Comparison route
-@app.route('/Image_Comparison', methods=['GET', 'POST'])
-def image_comparison_page():
+    # Compute the absolute difference between the original and watermarked images
+    difference = cv2.absdiff(original, watermarked)
+
+    # Convert the difference image to grayscale
+    gray_diff = cv2.cvtColor(difference, cv2.COLOR_BGR2GRAY)
+
+    # Apply a threshold to create a binary image of the differences
+    _, thresh = cv2.threshold(gray_diff, threshold, 255, cv2.THRESH_BINARY)
+
+    # Count non-zero pixels in the thresholded image
+    non_zero_count = cv2.countNonZero(thresh)
+
+    return non_zero_count > 0  # Returns True if watermark is detected
+
+@app.route('/Add_Watermark', methods=['GET', 'POST'])
+def add_watermark_route():
     if request.method == 'POST':
-        if 'file1' not in request.files or 'file2' not in request.files:
-            return redirect(request.url)
+        # Get the uploaded files (image and watermark) safely
+        image_file = request.files.get('image')
+        watermark_file = request.files.get('watermark')
 
-        file1 = request.files['file1']
-        file2 = request.files['file2']
+        if not image_file or not watermark_file:
+            # Handle the case where one of the files is missing
+            return "Please upload both the image and the watermark", 400
 
-        if file1.filename == '' or file2.filename == '':
-            return redirect(request.url)
+        # Apply the watermark
+        img_with_watermark = add_watermark(image_file, watermark_file, opacity=0.4, scale=0.2)
 
-        if file1 and file2:
-            filename1 = save_uploaded_file(file1, app.config['UPLOAD_FOLDER'])
-            filename2 = save_uploaded_file(file2, app.config['UPLOAD_FOLDER'])
-            
-            filepath1 = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
-            filepath2 = os.path.join(app.config['UPLOAD_FOLDER'], filename2)
+        # Save the watermarked image temporarily for downloading
+        watermarked_image_path = 'watermarked_image.png'
+        with open(watermarked_image_path, 'wb') as f:
+            f.write(base64.b64decode(img_with_watermark))
 
-            image1 = cv2.imread(filepath1)
-            image2 = cv2.imread(filepath2)
+        # Check if the watermark is present
+        watermark_exists = has_watermark(image_file, watermarked_image_path)
 
-            image1 = cv2.resize(image1, (image2.shape[1], image2.shape[0]))
+        return render_template('add_watermark.html',
+                               original_image=image_file.filename,
+                               watermarked_image=f"data:image/png;base64,{img_with_watermark}",
+                               watermark_exists=watermark_exists,
+                               download_link=watermarked_image_path)
 
-            mse_value, ssim_value = compare_images(image1, image2)
+    return render_template('add_watermark.html')
 
-            return render_template('image_comparison.html',
-                                   original_image1=get_image_url(filename1),
-                                   original_image2=get_image_url(filename2),
-                                   mse=mse_value, ssim=ssim_value)
+# Function to overlay a watermark on an image and return base64 result
+def add_watermark(image, watermark, opacity=0.7, scale=0.2):
+    # Convert the input images to NumPy arrays
+    img = np.array(Image.open(image))
+    watermark_img = np.array(Image.open(watermark))
 
-    return render_template('image_comparison.html')
+    # Check if the images are grayscale and convert them to RGB
+    if len(img.shape) == 2:  # Grayscale image (no color channels)
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+    if len(watermark_img.shape) == 2:  # Grayscale watermark
+        watermark_img = cv2.cvtColor(watermark_img, cv2.COLOR_GRAY2RGB)
 
-# Function to calculate MSE and SSIM
-def compare_images(image1, image2):
-    gray_image1 = cv2.cvtColor(image1, cv2.COLOR_BGR2GRAY) 
-    gray_image2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY) 
+    # Ensure both images are RGB (convert RGBA to RGB if necessary)
+    if img.shape[2] == 4:  # If main image has alpha channel, convert to RGB
+        img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
 
-    # Calculate MSE (Mean Squared Error)
-    mse = np.mean((gray_image1 - gray_image2) ** 2)
+    # Get the main image dimensions
+    h_img, w_img = img.shape[:2]
 
-    # Calculate SSIM (Structural Similarity Index) 
-    ssim_index = ssim(gray_image1, gray_image2) 
+    # Resize the watermark
+    if watermark_img.shape[2] == 4:  # If watermark has an alpha channel (RGBA)
+        watermark_color = watermark_img[:, :, :3]  # Get RGB
+        watermark_alpha = watermark_img[:, :, 3]  # Get Alpha
 
-    return mse, ssim_index
+        # Resize the watermark color and alpha channels
+        watermark_resized = cv2.resize(watermark_color, (int(w_img * scale), int(h_img * scale)))
+        alpha_resized = cv2.resize(watermark_alpha, (int(w_img * scale), int(h_img * scale)))
+
+        # Normalize the alpha mask to [0, 1]
+        alpha_resized = alpha_resized / 255.0
+    else:
+        # No alpha channel, use default opacity
+        watermark_resized = cv2.resize(watermark_img, (int(w_img * scale), int(h_img * scale)))
+        alpha_resized = np.ones_like(watermark_resized[:, :, 0]) * opacity
+
+    # Get the watermark's dimensions after resizing
+    h_wmark, w_wmark = watermark_resized.shape[:2]
+
+    # Calculate center position for the watermark
+    center_x = (w_img - w_wmark) // 2
+    center_y = (h_img - h_wmark) // 2
+
+    # Extract the region of interest (ROI) from the main image at the center
+    roi = img[center_y:center_y + h_wmark, center_x:center_x + w_wmark]
+
+    # Ensure ROI and watermark are the same size
+    if roi.shape != watermark_resized.shape:
+        raise ValueError("ROI and watermark sizes don't match!")
+
+    # Blend the watermark with the ROI using the alpha channel and opacity
+    for c in range(0, 3):
+        roi[:, :, c] = (1 - alpha_resized) * roi[:, :, c] + alpha_resized * watermark_resized[:, :, c]
+
+    # Place the blended watermark back into the original image
+    img[center_y:center_y + h_wmark, center_x:center_x + w_wmark] = roi
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    # Encode the image to PNG and convert to base64 directly
+    success, encoded_image = cv2.imencode('.png', img)
+    if not success:
+        raise ValueError("Could not encode image")
+
+    # Convert the encoded image to base64
+    image_base64 = base64.b64encode(encoded_image).decode('utf-8')
+
+    return image_base64
+
+@app.route('/download')
+def download():
+    # Provide a download link for the watermarked image
+    return send_file('watermarked_image.png', as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)
