@@ -780,46 +780,56 @@ def add_watermark(image, watermark, opacity=0.7, scale=0.2):
 @app.route('/download')
 def download():
     # Provide a download link for the watermarked image
-    return send_file('image.png', as_attachment=True)
+    return send_file('watermarked_image.png', as_attachment=True)
 
+@app.route('/upload', methods=['POST'])
+def upload_image():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No image uploaded'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
 
-@app.route('/Inpainting', methods=['GET', 'POST'])
-def inpainting_page():
-    if request.method == 'POST':
-        if 'file' not in request.files:
-            return redirect(request.url)
-        file = request.files['file']
-        if file.filename == '':
-            return redirect(request.url)
-        
-        if file:
-            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    # Save the image
+    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(file_path)
+    
+    return jsonify({'file_path': file_path})
 
-            # Load the image
-            image = cv2.imread(filepath)
+# Route to render the HTML page for Inpainting
+@app.route('/Inpaint_Restoration', methods=['GET'])
+def inpaint():
+    return render_template('inpaint.html')
 
-            # Create mask from POST request
-            if 'mask' in request.form:
-                mask_data = request.form['mask']
-                mask_array = np.frombuffer(base64.b64decode(mask_data), np.uint8)
-                mask = cv2.imdecode(mask_array, cv2.IMREAD_GRAYSCALE)
+@app.route('/inpaint', methods=['POST'])
+def inpaint_image():
+    data = request.get_json()
+    image_path = data.get('image_path')
+    mask_data = data.get('mask')
 
-                # Apply inpainting
-                restored_image = cv2.inpaint(image, mask, 3, cv2.INPAINT_TELEA)
+    if not image_path or not mask_data:
+        return jsonify({'error': 'Missing image or mask data'}), 400
 
-                # Convert the restored image to base64 to display on HTML
-                _, buffer = cv2.imencode('.png', restored_image)
-                restored_image_data = base64.b64encode(buffer).decode('ascii')
+    # Read the image
+    image = cv2.imread(image_path)
+    if image is None:
+        return jsonify({'error': 'Failed to read image'}), 400
 
-                return render_template('inpainting.html',
-                                       original_image=get_image_url(filename),
-                                       restored_image=f"data:image/png;base64,{restored_image_data}",
-                                       mask_created=True)
+    # Convert mask_data (which is a 2D list) to a NumPy array
+    mask = np.array(mask_data, dtype=np.uint8)
 
-    return render_template('inpainting.html')
+    # Resize the mask to match the image
+    mask_resized = cv2.resize(mask, (image.shape[1], image.shape[0]))
 
+    # Apply inpainting
+    restored_image = cv2.inpaint(image, mask_resized, 3, cv2.INPAINT_TELEA)
 
+    # Save the restored image
+    restored_filename = 'restored_' + os.path.basename(image_path)
+    result_path = os.path.join(UPLOAD_FOLDER, restored_filename)
+    cv2.imwrite(result_path, restored_image)
+
+    return jsonify({'restored_image': url_for('static', filename=f'uploads/{restored_filename}')})
 
 ### this is unused function for now
 ## fitur buat buat /bisa di akses di /Collage tidak ada di home
