@@ -412,4 +412,34 @@ label[for="effect"] {
     font-size: 16px;
   }
 
-  
+  #inpaint-output-container {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#inpaint-originalImage {
+    max-width: 100%;
+    margin-bottom: 20px;
+}
+
+#inpaint-canvas {
+    border: 1px solid black;
+    cursor: crosshair;
+    margin-bottom: 20px;
+}
+
+#inpaint-processButton {
+    margin-top: 10px;
+}
+
+#inpaint-output-section {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.inpaint-output-image img {
+    max-width: 100%;
+    margin-top: 20px;
+}

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Inpainting</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <style>
+        #canvas, #overlayCanvas {
+            border: 1px solid black;
+            cursor: crosshair;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+  <header>
+    <p class="app-name">Pixel Guard</p>
+    <nav class="navbar">
+      <button><a href="/">Home</a></button>
+      <button><a href="/about">About Us</a></button>
+      <div class="dropdown">
+        <button class="dropbtn">Features</button>
+        <div class="dropdown-content">
+          <a href="/Histogram_Equal">Histogram Equalization</a>
+          <a href="/Face_Blurring">Face Blurring</a>
+          <a href="/Face_Detection">Face Detection</a>
+          <a href="/Edge_Detection">Edge Detection</a>
+          <a href="/Segment_Image">Image Segmentation</a>
+          <a href="/Color_Filtering">Color Filtering</a>
+          <a href="/Image_Effects">Image Effects</a>
+          <a href="/Inpaint_Restoration">Inpainting</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <section class="content">
+    <div class="centered-title">
+      <h2>Inpainting</h2>
+    </div>
+
+    <div class="form-container">
+      <form id="uploadForm" enctype="multipart/form-data">
+          <label for="file">Upload Image:</label>
+          <input type="file" id="imageInput" name="file" accept="image/*" required />
+          <br /><br />
+          <button type="submit" class="btn">Upload</button>
+      </form>
+    </div>
+
+    <div id="inpaint-output-container">
+      <img id="inpaint-originalImage" src="" alt="Original Image" style="display: none;" />
+      <canvas id="inpaint-canvas" width="400" height="400"></canvas>
+  </div>
+  <button id="inpaint-processButton" class="btn" style="display: none;">Process Inpainting</button>
+  
+  <div id="inpaint-output-section" style="display: none;">
+      <div class="inpaint-output-image">
+          <h3>Restored Image</h3>
+          <img id="inpaint-restoredImage" src="" alt="Restored Image" width="400" />
+      </div>
+  </div>
+  
+
+  <footer class="footer">
+      <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+  </footer>
+  <script>
+    const inpaintCanvas = document.getElementById('inpaint-canvas');
+    const inpaintCtx = inpaintCanvas.getContext('2d');
+    let drawing = false;
+    let imagePath = '';
+    let mask = [];
+
+    // Handle form submission to upload the image
+    document.getElementById('uploadForm').onsubmit = async function (e) {
+        e.preventDefault();
+        const fileInput = document.getElementById('imageInput').files[0];
+        const formData = new FormData();
+        formData.append('file', fileInput);
+
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        imagePath = data.file_path;
+
+        const img = new Image();
+        img.src = imagePath;
+        img.onload = function () {
+            document.getElementById('inpaint-originalImage').src = imagePath;
+            document.getElementById('inpaint-originalImage').style.display = 'block';
+            inpaintCanvas.width = img.width;
+            inpaintCanvas.height = img.height;
+            inpaintCtx.drawImage(img, 0, 0);
+        };
+
+        document.getElementById('inpaint-originalImage').src = imagePath;
+        document.getElementById('inpaint-originalImage').style.display = 'block';
+        document.getElementById('inpaint-processButton').style.display = 'block';
+    };
+
+    // Drawing the mask on the canvas
+    inpaintCanvas.onmousedown = function (e) {
+        drawing = true;
+        inpaintCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        inpaintCtx.beginPath();
+    };
+
+    inpaintCanvas.onmousemove = function (e) {
+        if (drawing) {
+            const x = e.offsetX;
+            const y = e.offsetY;
+            inpaintCtx.arc(x, y, 10, 0, 2 * Math.PI);
+            inpaintCtx.fill();
+
+            // Store the mask data as circles with coordinates
+            mask.push([x, y, 10]);
+        }
+    };
+
+    inpaintCanvas.onmouseup = function () {
+        drawing = false;
+    };
+
+    // Process inpainting
+    document.getElementById('inpaint-processButton').onclick = async function () {
+        const response = await fetch('/inpaint', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image_path: imagePath,
+                mask: createMaskData()
+            })
+        });
+
+        const data = await response.json();
+        document.getElementById('inpaint-restoredImage').src = data.restored_image;
+        document.getElementById('inpaint-output-section').style.display = 'block';
+    };
+
+    // Convert the drawn mask into a 2D array for processing
+    function createMaskData() {
+        const maskArray = Array.from(Array(inpaintCanvas.height), () => Array(inpaintCanvas.width).fill(0));
+        mask.forEach(point => {
+            const [x, y, radius] = point;
+            for (let i = -radius; i <= radius; i++) {
+                for (let j = -radius; j <= radius; j++) {
+                    if (x + i >= 0 && x + i < inpaintCanvas.width && y + j >= 0 && y + j < inpaintCanvas.height) {
+                        maskArray[y + j][x + i] = 255;  // White (255) indicates the mask area
+                    }
+                }
+            }
+        });
+        return maskArray;
+    }
+</script>
+
+</body>
+</html>
