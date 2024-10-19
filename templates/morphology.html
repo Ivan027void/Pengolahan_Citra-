@@ -3,8 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Image Segmentation</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+    <title>Image Morphology</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
   </head>
   <body>
     <header>
@@ -32,15 +35,52 @@
 
     <section class="content">
       <div class="centered-title">
-        <h2>Vegetaion Image Segmentation</h2>
+        <h2>Image Morphology</h2>
       </div>
 
       <div class="form-container">
-        <form action="/Segment_Image" method="post" enctype="multipart/form-data">
-          <label for="file">Upload Satellite Image:</label>
-          <input type="file" name="file" id="file" required />
-          <br /><br />
-          <button type="submit">Segment Image</button>
+        <form
+          action="/Morphology"
+          method="post"
+          enctype="multipart/form-data"
+        >
+          <label for="file">Upload Image:</label>
+          <input type="file" name="file" accept="image/*" required />
+
+          <p>Select Morphological Operation:</p>
+          <div class="radio-container">
+            <input
+              type="radio"
+              id="erosion"
+              name="operation"
+              value="erosion"
+              checked
+            />
+            <label for="erosion">Erosion</label>
+            <input
+              type="radio"
+              id="dilation"
+              name="operation"
+              value="dilation"
+            />
+            <label for="dilation">Dilation</label>
+            <input
+              type="radio"
+              id="opening"
+              name="operation"
+              value="opening"
+            />
+            <label for="opening">Opening</label>
+            <input
+              type="radio"
+              id="closing"
+              name="operation"
+              value="closing"
+            />
+            <label for="closing">Closing</label>
+          </div>
+
+          <button type="submit" class="btn">Apply</button>
         </form>
       </div>
 
@@ -55,20 +95,8 @@
           />
         </div>
         <div class="output-image">
-          <h3>Segmented Image (With Vegetation)</h3>
-          <img
-            src="{{ plants_image }}"
-            alt="Segmented Image with Vegetation"
-            width="400"
-          />
-        </div>
-        <div class="output-image">
-          <h3>Segmented Image (Without Vegetation)</h3>
-          <img
-            src="{{ non_plants_image }}"
-            alt="Segmented Image without Vegetation"
-            width="400"
-          />
+          <h3>{{ operation | capitalize }} Result</h3>
+          <img src="{{ morph_image }}" alt="{{ operation }} Result" />
         </div>
       </div>
       {% endif %}

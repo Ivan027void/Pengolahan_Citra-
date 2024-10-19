@@ -49,6 +49,47 @@ def home():
 def about():
     return render_template('about.html')
 
+# Image morphological operations route
+@app.route('/Morphology', methods=['GET', 'POST'])
+def morpholgy_page():
+    if request.method == 'POST':
+        if 'file' not in request.files or 'operation' not in request.form:
+            return redirect(request.url)
+        file = request.files['file']
+        operation = request.form['operation']  # Erosion, Dilation, Opening, Closing
+        if file.filename == '':
+            return redirect(request.url)
+        if file:
+            # Save file using utility function
+            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            # Read image
+            image = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
+
+            # Apply the selected morphological operation
+            if operation == 'erosion':
+                kernel = np.ones((5, 5), np.uint8)
+                morph_image = cv2.erode(image, kernel, iterations=1)
+            elif operation == 'dilation':
+                kernel = np.ones((5, 5), np.uint8)
+                morph_image = cv2.dilate(image, kernel, iterations=1)
+            elif operation == 'opening':
+                kernel = np.ones((5, 5), np.uint8)
+                morph_image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
+            elif operation == 'closing':
+                kernel = np.ones((5, 5), np.uint8)
+                morph_image = cv2.morphologyEx(image, cv2.MORPH_CLOSE, kernel)
+
+            # Convert morphological image to base64 to display on HTML
+            morph_image_data = convert_image_to_base64(morph_image)
+
+            return render_template('morphology.html',
+                                   original_image=get_image_url(filename),
+                                   morph_image=f"data:image/png;base64,{morph_image_data}",
+                                   operation=operation)
+    return render_template('morphology.html')
+
 # Histogram Equalization route
 @app.route('/Histogram_Equal', methods=['GET', 'POST'])
 def histogram_equalization_page():
@@ -562,8 +603,8 @@ def apply_split_tone(image, highlight_color=(0, 195, 255), shadow_color=(0, 100,
     output_image = np.zeros_like(image, dtype=np.float32)
 
     # Create masks for highlights and shadows
-    highlight_mask = split_tone_image.mean(axis=2) > 0.5  # Mean to find highlights
-    shadow_mask = split_tone_image.mean(axis=2) <= 0.5  # Mean to find shadows
+    highlight_mask = split_tone_image.mean(axis=2) > 0.5  # Mean to find highlights, hightlight color (0, 195, 255) is red
+    shadow_mask = split_tone_image.mean(axis=2) <= 0.5  # Mean to find shadows, shadow color (0, 100, 0) is green
 
     # Apply highlight color
     output_image[highlight_mask] = highlight_color  # Direct assignment for highlights
