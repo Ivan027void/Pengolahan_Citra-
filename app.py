@@ -49,6 +49,65 @@ def home():
 def about():
     return render_template('about.html')
 
+# Function to resize image with interpolation
+def resize_image_with_interpolation(image_path, scale_factor, interpolation_method):
+    # Baca gambar asli
+    image = cv2.imread(image_path)
+    if image is None:
+        raise ValueError("Gambar tidak dapat dibaca. Pastikan path benar.")
+    
+    # Menentukan ukuran baru (scaling uniform)
+    new_width = int(image.shape[1] * scale_factor)
+    new_height = int(image.shape[0] * scale_factor)
+    dim = (new_width, new_height)
+
+    # Tentukan metode interpolasi
+    interpolation_map = {
+        'bilinear': cv2.INTER_LINEAR,
+        'cubic': cv2.INTER_CUBIC,
+        'nearest': cv2.INTER_NEAREST,
+        'bicubic': cv2.INTER_LANCZOS4
+    }
+    interpolation = interpolation_map.get(interpolation_method, cv2.INTER_LINEAR)
+
+    # Resize gambar
+    resized_image = cv2.resize(image, dim, interpolation=interpolation)
+
+    # Simpan gambar hasil resize
+    resized_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'resized_image.jpg')
+    cv2.imwrite(resized_image_path, resized_image)
+    
+    return resized_image_path
+
+@app.route('/Image_Interpolation', methods=['GET', 'POST'])
+def image_interpolation():
+    if request.method == 'POST':
+        # Ambil file gambar yang diunggah
+        file = request.files['file']
+        if not file:
+            return "No file uploaded.", 400
+
+        # Simpan gambar asli
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+
+        # Ambil nilai scale factor dan metode interpolasi
+        scale_factor = float(request.form.get('scale_factor'))
+        interpolation_method = request.form.get('interpolation', 'bilinear')
+
+        # Resize gambar dengan interpolasi
+        resized_image_path = resize_image_with_interpolation(file_path, scale_factor, interpolation_method)
+
+        # Kirim gambar asli dan hasil ke template
+        return render_template('interpolation.html', original_image=url_for('static', filename='uploads/' + filename),
+                               resized_image=url_for('static', filename='uploads/resized_image.jpg'),
+                               interpolation=interpolation_method)
+
+    # Jika GET request, tampilkan halaman upload
+    return render_template('interpolation.html')
+
+
 # Image morphological operations route
 @app.route('/Morphology', methods=['GET', 'POST'])
 def morpholgy_page():

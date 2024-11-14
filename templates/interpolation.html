@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Interpolation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+    <header>
+        <h1>Image Interpolation</h1>
+        <nav>
+            <a href="/">Home</a> | <a href="/about">About Us</a> | <a href="/Image_Interpolation">Image Interpolation</a>
+        </nav>
+    </header>
+
+    <section>
+        <form action="/Image_Interpolation" method="post" enctype="multipart/form-data">
+            <label for="file">Upload Image:</label>
+            <input type="file" name="file" accept="image/*" required />
+            <br /><br />
+            <label for="scale_factor">Scale Factor:</label>
+            <input type="number" name="scale_factor" step="0.1" min="0.1" value="1.0" required />
+            <br /><br />
+            <label>Select Interpolation Method:</label>
+            <input type="radio" id="linear" name="interpolation" value="linear" checked />
+            <label for="linear">Bilinear</label>
+            <input type="radio" id="cubic" name="interpolation" value="cubic" />
+            <label for="cubic">Cubic</label>
+            <input type="radio" id="nearest" name="interpolation" value="nearest" />
+            <label for="nearest">Nearest</label>
+            <input type="radio" id="bicubic" name="interpolation" value="bicubic" />
+            <label for="bicubic">Bicubic</label>
+            <br /><br />
+            <button type="submit">Apply</button>
+        </form>
+
+        {% if original_image %}
+        <div class="output">
+            <h2>Original Image</h2>
+            <img src="{{ original_image }}" alt="Original Image" />
+            <h2>Resized Image ({{ interpolation | capitalize }})</h2>
+            <img src="{{ resized_image }}" alt="Resized Image" />
+        </div>
+        {% endif %}
+    </section>
+</body>
+</html>
