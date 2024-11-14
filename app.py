@@ -72,12 +72,11 @@ def resize_image_with_interpolation(image_path, scale_factor, interpolation_meth
 
     # Resize gambar
     resized_image = cv2.resize(image, dim, interpolation=interpolation)
-
     # Simpan gambar hasil resize
-    resized_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'resized_image.jpg')
-    cv2.imwrite(resized_image_path, resized_image)
+    #resized_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'resized_image.jpg')
+    # cv2.imwrite(resized_image_path, resized_image)
     
-    return resized_image_path
+    return resized_image
 
 @app.route('/Image_Interpolation', methods=['GET', 'POST'])
 def image_interpolation():
@@ -97,11 +96,13 @@ def image_interpolation():
         interpolation_method = request.form.get('interpolation', 'bilinear')
 
         # Resize gambar dengan interpolasi
-        resized_image_path = resize_image_with_interpolation(file_path, scale_factor, interpolation_method)
+        resized_image = resize_image_with_interpolation(file_path, scale_factor, interpolation_method)
+        # convert resized image to base64
+        resized_image = convert_image_to_base64(resized_image)
 
         # Kirim gambar asli dan hasil ke template
         return render_template('interpolation.html', original_image=url_for('static', filename='uploads/' + filename),
-                               resized_image=url_for('static', filename='uploads/resized_image.jpg'),
+                               resized_image=f"data:image/png;base64,{resized_image}",
                                interpolation=interpolation_method)
 
     # Jika GET request, tampilkan halaman upload
