@@ -64,9 +64,9 @@ def resize_image_with_interpolation(image_path, scale_factor, interpolation_meth
     # Tentukan metode interpolasi
     interpolation_map = {
         'bilinear': cv2.INTER_LINEAR,
-        'cubic': cv2.INTER_CUBIC,
+        'bicubic': cv2.INTER_CUBIC,
         'nearest': cv2.INTER_NEAREST,
-        'bicubic': cv2.INTER_LANCZOS4
+        'lanczos': cv2.INTER_LANCZOS4
     }
     interpolation = interpolation_map.get(interpolation_method, cv2.INTER_LINEAR)
 
