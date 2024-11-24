@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Restoration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <header>
+      <p class="app-name">Pixel Guard</p>
+      <nav class="navbar">
+        <button><a href="/">Home</a></button>
+        <button><a href="/about">About Us</a></button>
+        <div class="dropdown">
+          <button class="dropbtn">Features</button>
+          <div class="dropdown-content">
+            <a href="/Histogram_Equal">Histogram Equalization</a>
+            <a href="/Face_Blurring">Face Blurring</a>
+            <a href="/Face_Detection">Face Detection</a>
+            <a href="/Edge_Detection">Edge Detection</a>
+            <a href="/Segment_Image">Image Segmentation</a>
+            <a href="/Color_Filtering">Color Filtering</a>
+            <a href="/Image_Effects">Image Effects</a>
+            <a href="/Image_Comparison">Image Comparison Tools</a>
+            <a href="/Inpaint_Restoration">Inpainting</a>
+            <a href="/Morphology">Morphology</a>
+            <a href="/Image_Interpolation">Image Interpolation</a>
+            <a href="/Restoration">Restoration</a>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <section class="content">
+      <div class="centered-title">
+        <h2>Image Restoration</h2>
+      </div>
+
+      <div class="form-container">
+        <form action="/Restoration" method="post" enctype="multipart/form-data">
+          <label for="file">Upload Image:</label>
+          <input type="file" name="file" accept="image/*" required />
+
+          <p>Select Noise Type:</p>
+          <div class="radio-container">
+            <input type="radio" id="salt_pepper" name="noise_type" value="salt_pepper" checked onclick="updateRestorationOptions()" />
+            <label for="salt_pepper">Salt and Pepper</label>
+
+            <input type="radio" id="gaussian" name="noise_type" value="gaussian" onclick="updateRestorationOptions()" />
+            <label for="gaussian">Gaussian</label>
+
+            <input type="radio" id="speckle" name="noise_type" value="speckle" onclick="updateRestorationOptions()" />
+            <label for="speckle">Speckle</label>
+
+            <input type="radio" id="periodic" name="noise_type" value="periodic" onclick="updateRestorationOptions()" />
+            <label for="periodic">Periodic</label>
+          </div>
+
+          <p>Select Restoration Method:</p>
+          <div class="radio-container" id="restoration-methods">
+            <!-- Options will be dynamically updated here -->
+          </div>
+
+          <button type="submit" class="btn">Apply</button>
+        </form>
+      </div>
+
+      {% if original_image %}
+      <div class="output-container">
+        <div class="output-image">
+          <h3>Original Image</h3>
+          <img src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}" alt="Original Image" width="400" />
+        </div>
+        <div class="output-image">
+          <h3>Noisy Image</h3>
+          <img src="{{ noisy_image }}" alt="Noisy Image" />
+        </div>
+        <div class="output-image">
+          <h3>Restored Image</h3>
+          <img src="{{ restored_image }}" alt="Restored Image" />
+        </div>
+      </div>
+      {% endif %}
+    </section>
+
+    <footer class="footer">
+      <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+      function updateRestorationOptions() {
+        const restorationMethodsContainer = document.getElementById("restoration-methods");
+        const noiseType = document.querySelector('input[name="noise_type"]:checked').value;
+        
+        let restorationOptions = "";
+
+        if (noiseType === "salt_pepper") {
+          restorationOptions += `
+            <input type="radio" id="median" name="restoration_method" value="median" checked />
+            <label for="median">Median Filter</label>
+            <input type="radio" id="rank_order" name="restoration_method" value="rank_order" />
+            <label for="rank_order">Rank Order Filter</label>
+            <input type="radio" id="outlier" name="restoration_method" value="outlier" />
+            <label for="outlier">Outlier Method</label>
+            <input type="radio" id="lowpass" name="restoration_method" value="lowpass" />
+            <label for="lowpass">Lowpass Method</label>`;
+            
+        } else if (noiseType === "gaussian") {
+          restorationOptions += `
+            <input type="radio" id="gaussian" name="restoration_method" value="gaussian" checked />
+            <label for="gaussian">Gaussian Filter</label>
+            <input type="radio" id="bilateral" name="restoration_method" value="bilateral" />
+            <label for="bilateral">Bilateral Filter</label>
+            <input type="radio" id="wiener" name="restoration_method" value="wiener" />
+            <label for="wiener">Wiener Filter</label>`;
+        } else if (noiseType === "speckle") {
+          restorationOptions += `
+            <input type="radio" id="median" name="restoration_method" value="median" checked />
+            <label for="median">Median Filter</label>
+            <input type="radio" id="lee" name="restoration_method" value="lee" />
+            <label for="lee">Lee Filter</label>
+            <input type="radio" id="frost" name="restoration_method" value="frost" />
+            <label for="frost">Frost Filter</label>`;
+        } else if (noiseType === "periodic") {
+          restorationOptions += `
+            <input type="radio" id="notch" name="restoration_method" value="notch" checked />
+            <label for="notch">Notch Filter</label>
+            <input type="radio" id="bandpass" name="restoration_method" value="bandpass" />
+            <label for="bandpass">Bandpass Filter</label>
+            <input type="radio" id="butterworth" name="restoration_method" value="butterworth" />
+            <label for="butterworth">Butterworth Filter</label>`;
+        }
+
+        restorationMethodsContainer.innerHTML = restorationOptions;
+      }
+
+      // Initialize the restoration options on page load
+      document.addEventListener("DOMContentLoaded", updateRestorationOptions);
+    </script>
+  </body>
+</html>

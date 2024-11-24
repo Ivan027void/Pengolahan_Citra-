@@ -1,113 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Image Processing App</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='styles.css') }}"
-    />
-  </head>
-  <body>
-    <header class="main-header">
-      <p class="app-name">Pixel Guard</p>
-      <nav class="navbar">
-        <button><a href="/">Home</a></button>
-        <button><a href="/about">About Us</a></button>
-        <div class="dropdown">
-          <button class="dropbtn">Features</button>
-          <div class="dropdown-content">
-            <a href="/Histogram_Equal">Histogram Equalization</a>
-            <a href="/Face_Blurring">Face Blurring</a>
-            <a href="/Face_Detection">Face Detection</a>
-            <a href="/Edge_Detection">Edge Detection</a>
-            <a href="/Segment_Image">Image Segmentation</a>
-            <a href="/Color_Filtering">Color Filtering</a>
-            <a href="/Image_Effects">Image Effects</a>
-            <a href="/Image_Comparison">Image Comparison Tools</a>
-            <a href="/Inpaint_Restoration">Inpainting</a>
-            <a href="/Morphology">Morphology</a>
-            <a href="/Image_Interpolation">Image Interpolation</a>
-          </div>
-        </div>
-      </nav>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+    <header>
+        <p class="app-name">Pixel Guard</p>
+        <nav class="navbar">
+            <button><a href="/">Home</a></button>
+            <button><a href="/about">About Us</a></button>
+            <div class="dropdown">
+                <button class="dropbtn">Features</button>
+                <div class="dropdown-content">
+                    <!-- Feature Links -->
+                    <a href="/Histogram_Equal">Histogram Equalization</a>
+                    <a href="/Face_Blurring">Face Blurring</a>
+                    <a href="/Face_Detection">Face Detection</a>
+                    <a href="/Edge_Detection">Edge Detection</a>
+                    <a href="/Segment_Image">Image Segmentation</a>
+                    <a href="/Color_Filtering">Color Filtering</a>
+                    <a href="/Image_Effects">Image Effects</a>
+                    <a href="/Image_Comparison">Image Comparison Tools</a>
+                    <a href="/Inpaint_Restoration">Inpainting</a>
+                    <a href="/Morphology">Morphology</a>
+                    <a href="/Image_Interpolation">Image Interpolation</a>
+                </div>
+            </div>
+        </nav>
     </header>
 
     <section class="content">
-      <div class="centered-title">
-        <h2>Image Interpolation</h2>
-      </div>
-
-      <div class="form-container">
-        <form
-          action="/Image_Interpolation"
-          method="post"
-          enctype="multipart/form-data"
-        >
-          <label for="file">Upload Image:</label>
-          <input type="file" name="file" accept="image/*" required />
-
-          <label for="scale_factor">Scale Factor:</label>
-          <input
-            type="number"
-            name="scale_factor"
-            step="0.1"
-            min="0.1"
-            value="1.0"
-            required
-          />
-
-          <p>Select Interpolation Method:</p>
-          <div class="radio-container">
-            <input
-              type="radio"
-              id="linear"
-              name="interpolation"
-              value="linear"
-              checked
-            />
-            <label for="linear">Bilinear</label>
-            <input type="radio" id="bicubic" name="interpolation" value="bicubic" />
-            <label for="cubic">Bicubic</label>
-            <input
-              type="radio"
-              id="nearest"
-              name="interpolation"
-              value="nearest"
-            />
-            <label for="nearest">Nearest</label>
-            <input
-              type="radio"
-              id="lanczos"
-              name="interpolation"
-              value="lanczos"
-            />
-            <label for="lanczos">Lanczos</label>
+        <div class="centered-title">
+            <h2>Image Interpolation</h2>
+        </div>
+        <div class="form-container">
+            <p>Resize an image using different interpolation methods.</p>
+            <form action="/Image_Interpolation" method="post" enctype="multipart/form-data">
+              <label for="file">Upload Image:</label>
+              <input type="file" name="file" accept="image/*" required />
+      
+              <label for="scale_factor">Scale Factor:</label>
+              <input type="number" name="scale_factor" step="0.1" min="0.1" value="1.0" required />
+      
+              <p>Select Interpolation Method:</p>
+              <div class="radio-container">
+                <input type="radio" id="linear" name="interpolation" value="bilinear" checked />
+                <label for="linear">Bilinear</label>
+                <input type="radio" id="bicubic" name="interpolation" value="bicubic" />
+                <label for="cubic">Bicubic</label>
+                <input type="radio" id="nearest" name="interpolation" value="nearest" />
+                <label for="nearest">Nearest</label>
+                <input type="radio" id="lanczos" name="interpolation" value="lanczos" />
+                <label for="lanczos">Lanczos</label>
+                <input type="checkbox" id="compare_all" name="compare_all" />
+                <label for="compare_all">Compare All</label>
+              </div>
+      
+              <button type="submit">Apply</button>
+            </form>
           </div>
+      
+            {% if original_image %}
+            <div class="output-container">
+              <div class="output-image">
+              <h3>Original Image</h3>
+              <img src="{{ original_image }}" alt="Original Image" />
+              </div>
 
-          <button type="submit" class="btn">Apply</button>
-        </form>
-      </div>
-
-      {% if original_image %}
-      <div class="output-container">
-        <div class="output-image">
-          <h3>Original Image</h3>
-          <img src="{{ original_image }}" alt="Original Image" />
-        </div>
-        <div class="resized-image-box">
-          <h3 style="text-align: center">
-            Resized Image ({{ interpolation | capitalize }})
-          </h3>
-          <img src="{{ resized_image }}" alt="Resized Image" />
-        </div>
-      </div>
-      {% endif %}
-    </section>
+              {% if resized_image %}
+              <div class="resized-image-box">
+              <h3>Resized Image</h3>
+              <img src="{{ resized_image }}" alt="Resized Image" />
+              </div>
+              {% endif %}
+      
+              {% if pixel_comparison_plot %}
+              <div class="resized-image-box">
+              <h3>Interpolation Comparison</h3>
+              <img src="{{ pixel_comparison_plot }}" alt="Comparison Plot" />
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+          </section>
 
     <footer class="footer">
-      <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
+        <p>&copy; 2024 Image Processing App. All Rights Reserved.</p>
     </footer>
-  </body>
+</body>
 </html>

@@ -9,6 +9,7 @@ import numpy as np
 import random
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 
@@ -49,19 +50,196 @@ def home():
 def about():
     return render_template('about.html')
 
-# Function to resize image with interpolation
-def resize_image_with_interpolation(image_path, scale_factor, interpolation_method):
-    # Baca gambar asli
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError("Gambar tidak dapat dibaca. Pastikan path benar.")
+@app.route('/Restoration', methods=['GET', 'POST'])
+def restoration_page():
+    if request.method == 'POST':
+        if 'file' not in request.files or 'noise_type' not in request.form or 'restoration_method' not in request.form:
+            return redirect(request.url)
+        
+        file = request.files['file']
+        noise_type = request.form['noise_type']
+        restoration_method = request.form['restoration_method']
+        
+        if file.filename == '':
+            return redirect(request.url)
+            
+        if file:
+            # Save file using utility function
+            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+            # Read image
+            image = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
+            
+            # Add noise based on selected type
+            if noise_type == 'salt_pepper':
+                # Add salt and pepper noise
+                noisy_image = add_salt_pepper_noise(image, salt_prob=0.02, pepper_prob=0.02)
+            elif noise_type == 'gaussian':
+                # Add Gaussian noise
+                noisy_image = add_gaussian_noise(image, mean=0, sigma=25)
+            elif noise_type == 'speckle':
+                # Add speckle noise
+                noisy_image = add_speckle_noise(image, intensity=0.1)
+            elif noise_type == 'periodic':
+                # Add periodic noise
+                noisy_image = add_periodic_noise(image, frequency=0.1)
+            
+            # Apply restoration method
+            if noise_type == 'salt_pepper':
+                if restoration_method == 'median':
+                    restored_image = cv2.medianBlur(noisy_image, 3)
+                elif restoration_method == 'rank_order':
+                    restored_image = rank_order_filter(noisy_image, kernel_size=3)
+                elif restoration_method == 'outlier':
+                    restored_image = outlier_method(noisy_image, threshold=50)
+                elif restoration_method == 'lowpass':
+                    kernel = np.ones((3,3), np.float32) / 9
+                    restored_image = cv2.filter2D(noisy_image, -1, kernel)
+            
+            elif noise_type == 'gaussian':
+                if restoration_method == 'gaussian':
+                    restored_image = cv2.GaussianBlur(noisy_image, (5,5), 0)
+                elif restoration_method == 'bilateral':
+                    restored_image = cv2.bilateralFilter(noisy_image, 9, 75, 75)
+            
+            elif noise_type == 'speckle':
+                if restoration_method == 'median':
+                    restored_image = cv2.medianBlur(noisy_image, 5)
+                elif restoration_method == 'lee':
+                    restored_image = lee_filter(noisy_image)
+                elif restoration_method == 'frost':
+                    restored_image = frost_filter(noisy_image)
+            
+            elif noise_type == 'periodic':
+                if restoration_method == 'notch':
+                    # simple aplication of notch filter
+                    restored_image = cv2.medianBlur(noisy_image, 3)
+                elif restoration_method == 'bandpass':
+                    # simple aplication of bandpass filter
+                    restored_image = cv2.medianBlur(noisy_image, 3)
+                elif restoration_method == 'butterworth':
+                    # simple aplication of butterworth filter
+                    restored_image = cv2.medianBlur(noisy_image, 3)
+
+            # Convert images to base64 for display
+            noisy_image_data = convert_image_to_base64(noisy_image)
+            restored_image_data = convert_image_to_base64(restored_image)
+
+            return render_template('restoration.html',
+                                original_image=get_image_url(filename),
+                                noisy_image=f"data:image/png;base64,{noisy_image_data}",
+                                restored_image=f"data:image/png;base64,{restored_image_data}",
+                                noise_type=noise_type,
+                                restoration_method=restoration_method)
     
-    # Menentukan ukuran baru (scaling uniform)
+    return render_template('restoration.html')
+
+# Helper functions for adding noise
+def add_salt_pepper_noise(image, salt_prob, pepper_prob):
+    noisy = np.copy(image)
+    # Add salt noise
+    salt_mask = np.random.random(image.shape) < salt_prob
+    noisy[salt_mask] = 255
+    # Add pepper noise
+    pepper_mask = np.random.random(image.shape) < pepper_prob
+    noisy[pepper_mask] = 0
+    return noisy
+
+def add_gaussian_noise(image, mean, sigma):
+    gaussian = np.random.normal(mean, sigma, image.shape)
+    noisy = np.clip(image + gaussian, 0, 255).astype(np.uint8)
+    return noisy
+
+def add_speckle_noise(image, intensity):
+    gaussian = np.random.normal(0, intensity, image.shape)
+    noisy = np.clip(image + image * gaussian, 0, 255).astype(np.uint8)
+    return noisy
+
+def add_periodic_noise(image, frequency):
+    rows, cols = image.shape
+    x = np.arange(cols)
+    y = np.arange(rows)
+    
+    X, Y = np.meshgrid(x, y)
+    noise = 50 * np.sin(2 * np.pi * frequency * X)
+    noisy = np.clip(image + noise, 0, 255).astype(np.uint8)
+    return noisy
+
+# Custom restoration filters
+def rank_order_filter(image, kernel_size):
+    return cv2.medianBlur(image, kernel_size)  # Simplified version
+
+def outlier_method(image, threshold):
+    result = np.copy(image)
+    mean_kernel = np.ones((3,3), np.float32) / 9
+    local_mean = cv2.filter2D(image, -1, mean_kernel)
+    diff = np.abs(image - local_mean)
+    mask = diff > threshold
+    result[mask] = local_mean[mask]
+    return result
+
+def lee_filter(image, window_size=7, sigma=30):
+    """
+    Lee filter implementation for speckle noise reduction.
+    Adapts to local statistics using sliding window.
+    """
+    img_mean = cv2.blur(image, (window_size, window_size))
+    img_sqr_mean = cv2.blur(image**2, (window_size, window_size))
+    img_variance = img_sqr_mean - img_mean**2
+    
+    # Overall variance
+    overall_variance = np.mean(img_variance)
+    
+    # Weight function
+    weights = img_variance / (img_variance + sigma**2)
+    
+    # Apply filter
+    restored = img_mean + weights * (image - img_mean)
+    return np.uint8(restored)
+
+def frost_filter(image, window_size=7, damping_factor=2.0):
+    """
+    Frost filter implementation for speckle noise reduction.
+    Uses exponential kernel that varies with local statistics.
+    """
+    pad_size = window_size // 2
+    padded = np.pad(image, pad_size, mode='reflect')
+    restored = np.zeros_like(image, dtype=np.float64)
+    
+    # Create distance kernel
+    kernel_size = window_size
+    center = kernel_size // 2
+    y, x = np.ogrid[-center:center+1, -center:center+1]
+    distance = np.sqrt(x**2 + y**2)
+    
+    # Process each pixel
+    rows, cols = image.shape
+    for i in range(rows):
+        for j in range(cols):
+            # Extract local window
+            window = padded[i:i+window_size, j:j+window_size]
+            
+            # Calculate local statistics
+            local_mean = np.mean(window)
+            local_variance = np.var(window)
+            
+            # Create adaptive kernel
+            k = damping_factor * local_variance / (local_mean**2)
+            kernel = np.exp(-k * distance)
+            kernel = kernel / np.sum(kernel)  # Normalize
+            
+            # Apply filter
+            restored[i, j] = np.sum(window * kernel)
+    
+    return np.uint8(restored)
+
+
+# Function to resize image with interpolation
+def resize_image_with_interpolation(image, scale_factor, interpolation_method):
     new_width = int(image.shape[1] * scale_factor)
     new_height = int(image.shape[0] * scale_factor)
     dim = (new_width, new_height)
-
-    # Tentukan metode interpolasi
     interpolation_map = {
         'bilinear': cv2.INTER_LINEAR,
         'bicubic': cv2.INTER_CUBIC,
@@ -69,43 +247,110 @@ def resize_image_with_interpolation(image_path, scale_factor, interpolation_meth
         'lanczos': cv2.INTER_LANCZOS4
     }
     interpolation = interpolation_map.get(interpolation_method, cv2.INTER_LINEAR)
-
-    # Resize gambar
     resized_image = cv2.resize(image, dim, interpolation=interpolation)
-    # Simpan gambar hasil resize
-    #resized_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'resized_image.jpg')
-    # cv2.imwrite(resized_image_path, resized_image)
-    
     return resized_image
+
+# Function to calculate pixel difference between two images
+def calculate_pixel_difference(image1, image2):
+    # Convert images to float32 for more precise calculations
+    image1_float = np.float32(image1)
+    image2_float = np.float32(image2)
+    
+    # Calculate the absolute difference
+    diff = np.abs(image1_float - image2_float)
+    
+    # Normalize the difference for visualization
+    diff_normalized = cv2.normalize(diff, None, 0, 255, cv2.NORM_MINMAX)
+    
+    # Convert the difference to an 8-bit image
+    diff_image = np.uint8(diff_normalized)
+    
+    # Apply color map to the difference image for better visualization
+    heatmap = cv2.applyColorMap(diff_image, cv2.COLORMAP_JET)
+    
+    return heatmap
+
+# Function to generate a comparison plot of the selected interpolation method and pixel differences
+def generate_interpolation_comparison_plot(image_path, scale_factor, selected_method):
+    original_image = cv2.imread(image_path)
+    interpolation_methods = ['bilinear', 'bicubic', 'nearest', 'lanczos']
+    
+    # Make sure the selected method is in the interpolation list
+    if selected_method not in interpolation_methods:
+        return None
+    
+    # Initialize lists to hold the resized images and difference images
+    resized_images = []
+    diff_images = []  # To store the difference heatmaps
+    
+    # Resize the image using the selected interpolation method and others
+    for method in interpolation_methods:
+        resized_image = resize_image_with_interpolation(original_image, scale_factor, method)
+        resized_images.append(resized_image)
+    
+    # Calculate pixel differences between the selected method and the others
+    selected_index = interpolation_methods.index(selected_method)
+    
+    for i, method in enumerate(interpolation_methods):
+        if i != selected_index:  # Skip the selected method itself
+            diff_image = calculate_pixel_difference(resized_images[selected_index], resized_images[i])
+            diff_images.append(diff_image)
+    
+    # Plot the resized images and their pixel difference heatmaps
+    fig, axes = plt.subplots(3, 3, figsize=(15, 15))
+    
+    # Plot the pixel difference heatmaps
+    diff_titles = [f"Diff: {selected_method.capitalize()} vs. {interpolation_methods[i]}" for i in range(len(resized_images)) if i != selected_index]
+    for i, ax in enumerate(axes[:3].flatten()):
+        if i < len(diff_images):
+            ax.imshow(cv2.cvtColor(diff_images[i], cv2.COLOR_BGR2RGB))
+            ax.set_title(diff_titles[i])
+            ax.axis('off')
+            
+    
+    # Save the plot to a BytesIO buffer
+    buf = BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    plot_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close(fig)
+    
+    return plot_base64
 
 @app.route('/Image_Interpolation', methods=['GET', 'POST'])
 def image_interpolation():
     if request.method == 'POST':
-        # Ambil file gambar yang diunggah
         file = request.files['file']
         if not file:
             return "No file uploaded.", 400
 
-        # Simpan gambar asli
         filename = secure_filename(file.filename)
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
-        # Ambil nilai scale factor dan metode interpolasi
         scale_factor = float(request.form.get('scale_factor'))
-        interpolation_method = request.form.get('interpolation', 'bilinear')
+        selected_method = request.form.get('interpolation', 'bilinear')
+        compare_all = 'compare_all' in request.form  # Checkbox to compare the selected method with others
 
-        # Resize gambar dengan interpolasi
-        resized_image = resize_image_with_interpolation(file_path, scale_factor, interpolation_method)
-        # convert resized image to base64
-        resized_image = convert_image_to_base64(resized_image)
+        # Generate comparison plot if "Compare All" is selected
+        pixel_comparison_plot = None
+        if compare_all:
+            pixel_comparison_plot = generate_interpolation_comparison_plot(file_path, scale_factor, selected_method)
 
-        # Kirim gambar asli dan hasil ke template
-        return render_template('interpolation.html', original_image=url_for('static', filename='uploads/' + filename),
-                               resized_image=f"data:image/png;base64,{resized_image}",
-                               interpolation=interpolation_method)
+        # Resize with the selected interpolation method if "Compare All" is not selected
+        resized_image_base64 = None
+        if not compare_all:
+            original_image = cv2.imread(file_path)
+            resized_image = resize_image_with_interpolation(original_image, scale_factor, selected_method)
+            resized_image_base64 = convert_image_to_base64(resized_image)
 
-    # Jika GET request, tampilkan halaman upload
+        return render_template(
+            'interpolation.html',
+            original_image=url_for('static', filename='uploads/' + filename),
+            resized_image=f"data:image/png;base64,{resized_image_base64}" if resized_image_base64 else None,
+            pixel_comparison_plot=f"data:image/png;base64,{pixel_comparison_plot}" if pixel_comparison_plot else None,
+        )
+
     return render_template('interpolation.html')
 
 
