@@ -234,74 +234,97 @@ def frost_filter(image, window_size=7, damping_factor=2.0):
     
     return np.uint8(restored)
 
-#### fitur chain code
-def extract_chain_code(image):
-    # Convert image to grayscale and binarize it
+
+def extract_chain_code(image, direction_type='8_direction'):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
-
-    # Find contours
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
-    # Get chain code for the largest contour
     chain_code = []
-    if len(contours) > 0:
+    if contours:
         largest_contour = max(contours, key=cv2.contourArea)
         for i in range(len(largest_contour) - 1):
             dx = largest_contour[i + 1][0][0] - largest_contour[i][0][0]
             dy = largest_contour[i + 1][0][1] - largest_contour[i][0][1]
-            if dx == 1 and dy == 0: chain_code.append(0)  # Right
-            elif dx == 1 and dy == -1: chain_code.append(1)  # Top-right
-            elif dx == 0 and dy == -1: chain_code.append(2)  # Top
-            elif dx == -1 and dy == -1: chain_code.append(3)  # Top-left
-            elif dx == -1 and dy == 0: chain_code.append(4)  # Left
-            elif dx == -1 and dy == 1: chain_code.append(5)  # Bottom-left
-            elif dx == 0 and dy == 1: chain_code.append(6)  # Bottom
-            elif dx == 1 and dy == 1: chain_code.append(7)  # Bottom-right
-    return chain_code
+
+            if direction_type == '4_direction':
+                direction_map = {(1, 0): 0, (0, -1): 1, (-1, 0): 2, (0, 1): 3}
+            elif direction_type == '8_direction':
+                direction_map = {(1, 0): 0, (1, -1): 1, (0, -1): 2, (-1, -1): 3,
+                                 (-1, 0): 4, (-1, 1): 5, (0, 1): 6, (1, 1): 7}
+            chain_code.append(direction_map.get((dx, dy), None))
+    return [c for c in chain_code if c is not None]
+
+def apply_transformation(image, transformation):
+    if transformation == 'flip_horizontal':
+        return cv2.flip(image, 1)
+    elif transformation == 'flip_vertical':
+        return cv2.flip(image, 0)
+    elif transformation == 'rotate_90':
+        return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+    elif transformation == 'rotate_180':
+        return cv2.rotate(image, cv2.ROTATE_180)
+    return image
+
+def normalize_chain_code(chain_code, num_directions):
+    differences = [(chain_code[i] - chain_code[i - 1]) % num_directions for i in range(1, len(chain_code))]
+    differences.append((chain_code[0] - chain_code[-1]) % num_directions)
+    normalized_code = min(differences[i:] + differences[:i] for i in range(len(differences)))
+    return normalized_code, differences
 
 @app.route('/Chaincode', methods=['GET', 'POST'])
 def chain_code_page():
     if request.method == 'POST':
-        if 'file1' not in request.files or 'file2' not in request.files:
+        if 'file' not in request.files or 'transformation' not in request.form or 'chain_code_type' not in request.form:
             return redirect(request.url)
 
-        file1 = request.files['file1']
-        file2 = request.files['file2']
+        file = request.files['file']
+        transformation = request.form['transformation']
+        chain_code_type = request.form['chain_code_type']
 
-        if file1.filename == '' or file2.filename == '':
+        if file.filename == '':
             return redirect(request.url)
-        
-        if file1 and file2:
-            # Save both files
-            filename1 = save_uploaded_file(file1, app.config['UPLOAD_FOLDER'])
-            filename2 = save_uploaded_file(file2, app.config['UPLOAD_FOLDER'])
 
-            filepath1 = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
-            filepath2 = os.path.join(app.config['UPLOAD_FOLDER'], filename2)
+        if file:
+            filename = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            image = cv2.imread(filepath)
 
-            # Read images
-            image1 = cv2.imread(filepath1)
-            image2 = cv2.imread(filepath2)
+            transformed_image = apply_transformation(image, transformation)
+            chain_code_original = extract_chain_code(image, chain_code_type)
+            chain_code_transformed = extract_chain_code(transformed_image, chain_code_type)
 
-            # Extract chain codes
-            chain_code1 = extract_chain_code(image1)
-            chain_code2 = extract_chain_code(image2)
+            are_chain_codes_same = chain_code_original == chain_code_transformed
+            
+            if chain_code_type == '4_direction':
+                num_directions = 4
+            elif chain_code_type == '8_direction':
+                num_directions = 8
+                
+            normalized_code_original, differenced_original = normalize_chain_code(chain_code_original, num_directions)
+            normalized_code_transformed, differenced_transformed = normalize_chain_code(chain_code_transformed, num_directions)
 
-            # Compare chain codes
-            are_similar = chain_code1 == chain_code2
+            are_normalized_same = normalized_code_original == normalized_code_transformed
 
-            # Convert images to base64 for display
-            image1_data = convert_image_to_base64(image1)
-            image2_data = convert_image_to_base64(image2)
+            original_image_data = convert_image_to_base64(image)
+            transformed_image_data = convert_image_to_base64(transformed_image)
 
             return render_template('chaincode.html',
-                                   image1=f"data:image/png;base64,{image1_data}",
-                                   image2=f"data:image/png;base64,{image2_data}",
-                                   chain_code1=chain_code1,
-                                   chain_code2=chain_code2,
-                                   are_similar=are_similar)
+                                   original_image=f"data:image/png;base64,{original_image_data}",
+                                   transformed_image=f"data:image/png;base64,{transformed_image_data}",
+                                   chain_code_original=chain_code_original,
+                                   chain_code_transformed=chain_code_transformed,
+                                   are_chain_codes_same=are_chain_codes_same,
+                                   normalized_code_original=normalized_code_original,
+                                   normalized_code_transformed=normalized_code_transformed,
+                                   differences_original=differenced_original,
+                                   differences_transformed=differenced_transformed,
+                                   are_normalized_same=are_normalized_same
+            )
     return render_template('chaincode.html')
+
+
+
 
 
 # Function to resize image with interpolation

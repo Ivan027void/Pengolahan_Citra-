@@ -33,19 +33,9 @@
         color: #555;
       }
 
-      .output-details strong, .comparison-result strong {
-        color: #007BFF;
-        font-weight: bold;
-      }
-
-      .comparison-result p {
-        text-align: center;
-      }
-
-      .comparison-result strong {
-        font-size: 1.4em;
-      }
-</style>
+    
+  
+      </style>
   </head>
   <body>
     <header>
@@ -68,7 +58,7 @@
             <a href="/Morphology">Morphology</a>
             <a href="/Image_Interpolation">Image Interpolation</a>
             <a href="/Restoration">Image Restoration</a>
-            <a href="/Chaincode">Chain Code Comparison</a>
+            <a href="/chaincode">Chain Code Comparison</a>
           </div>
         </div>
       </nav>
@@ -80,41 +70,67 @@
       </div>
 
       <div class="form-container">
-        <form
-          action="/Chaincode"
-          method="post"
-          enctype="multipart/form-data"
-        >
-          <label for="file1">Upload Image 1:</label>
-          <input type="file" name="file1" accept="image/*" required />
-          <label for="file2">Upload Image 2:</label>
-          <input type="file" name="file2" accept="image/*" required />
+        <form action="/Chaincode" method="post" enctype="multipart/form-data">
+          <label for="file">Upload Image:</label>
+          <input type="file" name="file" accept="image/*" required />
+
+          <p>Select Transformation:</p>
+          <div class="radio-container">
+            <input type="radio" id="none" name="transformation" value="none" checked />
+            <label for="none">None</label>
+
+            <input type="radio" id="flip_horizontal" name="transformation" value="flip_horizontal" />
+            <label for="flip_horizontal">Flip Horizontal</label>
+
+            <input type="radio" id="flip_vertical" name="transformation" value="flip_vertical" />
+            <label for="flip_vertical">Flip Vertical</label>
+
+            <input type="radio" id="rotate_90" name="transformation" value="rotate_90" />
+            <label for="rotate_90">Rotate 90°</label>
+
+            <input type="radio" id="rotate_180" name="transformation" value="rotate_180" />
+            <label for="rotate_180">Rotate 180°</label>
+          </div>
+
+          <p>Select Chain Code Type:</p>
+          <div class="radio-container">
+            <input type="radio" id="4_direction" name="chain_code_type" value="4_direction" checked />
+            <label for="4_direction">4-Direction</label>
+
+            <input type="radio" id="8_direction" name="chain_code_type" value="8_direction" />
+            <label for="8_direction">8-Direction</label>
+          </div>
 
           <button type="submit" class="btn">Compare</button>
         </form>
       </div>
 
-      {% if image1 and image2 %}
+      {% if original_image and transformed_image %}
       <div class="output-container">
         <div class="output-image">
-          <h3>Uploaded Images 1</h3>
-          <img src="{{ image1 }}" alt="Image 1" width="400" />
+          <h3>Original Image</h3>
+          <img src="{{ original_image }}" alt="Original Image" />
         </div>
         <div class="output-image">
-          <h3>Uploaded Images 1</h3>
-          <img src="{{ image2 }}" alt="Image 2" width="400" />
+          <h3>Transformed Image</h3>
+          <img src="{{ transformed_image }}" alt="Transformed Image" />
         </div>
         <div class="output-details">
-          <h3>Chain Codes</h3>
-          <p><strong>Image 1 Chain Code:</strong> {{ chain_code1 }}</p>
+          <h3>Original Image Chain Code</h3>
+          <p><strong>Chain Code:</strong> {{ chain_code_original }}</p>
+          <p><strong>Differences:</strong> {{ differences_original }}</p>
+          <p><strong>Normalized Chain Code:</strong> {{ normalized_code_original }}</p>
         </div>
         <div class="output-details">
-          <h3>Chain Codes</h3>
-          <p><strong>Image 2 Chain Code:</strong> {{ chain_code2 }}</p>
+          <h3>Transformed Image Chain Code</h3>
+          <p><strong>Chain Code:</strong> {{ chain_code_transformed }}</p>
+          <p><strong>Differences:</strong> {{ differences_transformed }}</p>
+          <p><strong>Normalized Chain Code:</strong> {{ normalized_code_transformed }}</p>
         </div>
         <div class="comparison-result">
           <h3>Comparison Result</h3>
-          <p>Are the images similar? <strong>{{ 'Yes' if are_similar else 'No' }}</strong></p>
+          <p>Are chain codes identical? <strong>{{ 'Yes' if are_chain_codes_same else 'No' }}</strong></p>
+          <p>Are normalized chain codes identical? <strong>{{ 'Yes' if are_normalized_same else 'No' }}</strong></p>
         </div>
       </div>
       {% endif %}
