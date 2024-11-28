@@ -10,6 +10,7 @@ import random
 from PIL import Image
 from skimage.metrics import structural_similarity as ssim
 import matplotlib.pyplot as plt
+from scipy.ndimage import convolve
 
 app = Flask(__name__)
 
@@ -102,25 +103,24 @@ def restoration_page():
                     restored_image = cv2.GaussianBlur(noisy_image, (5,5), 0)
                 elif restoration_method == 'bilateral':
                     restored_image = cv2.bilateralFilter(noisy_image, 9, 75, 75)
+                elif restoration_method == 'wiener': # the best
+                    restored_image = wiener_filter(noisy_image, kernel_size=5, noise_variance=0.01)
             
             elif noise_type == 'speckle':
                 if restoration_method == 'median':
                     restored_image = cv2.medianBlur(noisy_image, 5)
-                elif restoration_method == 'lee':
+                elif restoration_method == 'lee': # the best
                     restored_image = lee_filter(noisy_image)
                 elif restoration_method == 'frost':
                     restored_image = frost_filter(noisy_image)
             
             elif noise_type == 'periodic':
                 if restoration_method == 'notch':
-                    # simple aplication of notch filter
-                    restored_image = cv2.medianBlur(noisy_image, 3)
+                    restored_image = notch_filter(noisy_image, freq_cutoff=0.1)
                 elif restoration_method == 'bandpass':
-                    # simple aplication of bandpass filter
-                    restored_image = cv2.medianBlur(noisy_image, 3)
+                    restored_image = bandpass_filter(noisy_image, low_cutoff=0.05, high_cutoff=0.15)
                 elif restoration_method == 'butterworth':
-                    # simple aplication of butterworth filter
-                    restored_image = cv2.medianBlur(noisy_image, 3)
+                    restored_image = butterworth_filter(noisy_image, cutoff=0.1, order=2)
 
             # Convert images to base64 for display
             noisy_image_data = convert_image_to_base64(noisy_image)
@@ -167,6 +167,19 @@ def add_periodic_noise(image, frequency):
     return noisy
 
 # Custom restoration filters
+def median_filter(image, kernel_size=3):
+    """
+    Median filter implementation to reduce salt-and-pepper noise.
+    
+    Args:
+    - image: Input grayscale image.
+    - kernel_size: Size of the kernel (should be odd, e.g., 3, 5, 7).
+    
+    Returns:
+    - Restored image after applying median filter.
+    """
+    return cv2.medianBlur(image, kernel_size)
+
 def rank_order_filter(image, kernel_size):
     return cv2.medianBlur(image, kernel_size)  # Simplified version
 
@@ -178,6 +191,71 @@ def outlier_method(image, threshold):
     mask = diff > threshold
     result[mask] = local_mean[mask]
     return result
+
+def lowpass_filter(image, kernel_size=3):
+    """
+    Lowpass filter using an average kernel to smooth the image.
+    
+    Args:
+    - image: Input grayscale image.
+    - kernel_size: Size of the kernel (e.g., 3x3, 5x5).
+    
+    Returns:
+    - Restored image after applying lowpass filter.
+    """
+    kernel = np.ones((kernel_size, kernel_size), np.float32) / (kernel_size**2)
+    return cv2.filter2D(image, -1, kernel)
+
+def gaussian_filter(image, kernel_size=5, sigma=1.0):
+    """
+    Gaussian filter implementation to reduce noise.
+    
+    Args:
+    - image: Input grayscale image.
+    - kernel_size: Size of the kernel (should be odd, e.g., 3, 5, 7).
+    - sigma: Standard deviation of the Gaussian kernel.
+    
+    Returns:
+    - Restored image after applying Gaussian filter.
+    """
+    return cv2.GaussianBlur(image, (kernel_size, kernel_size), sigma)
+
+def bilateral_filter(image, d=9, sigma_color=75, sigma_space=75):
+    """
+    Bilateral filter implementation to preserve edges while smoothing.
+    
+    Args:
+    - image: Input grayscale image.
+    - d: Diameter of the pixel neighborhood.
+    - sigma_color: Filter sigma in color space.
+    - sigma_space: Filter sigma in coordinate space.
+    
+    Returns:
+    - Restored image after applying bilateral filter.
+    """
+    return cv2.bilateralFilter(image, d, sigma_color, sigma_space)
+
+import numpy as np
+from scipy.signal import convolve2d
+
+def wiener_filter(image, kernel_size=5, noise_variance=0.1, signal_variance=1.0):
+    """
+    Wiener filter implementation to reduce noise in the image.
+    
+    Args:
+    - image: Input grayscale image.
+    - kernel_size: Size of the kernel (should be odd, e.g., 3, 5, 7).
+    - noise_variance: Variance of the noise in the image.
+    - signal_variance: Variance of the signal in the image.
+    
+    Returns:
+    - Restored image after applying Wiener filter.
+    """
+    kernel = np.ones((kernel_size, kernel_size)) / (kernel_size**2)
+    local_mean = convolve2d(image, kernel, mode='same', boundary='symm')
+    local_variance = convolve2d(image**2, kernel, mode='same', boundary='symm') - local_mean**2
+    result = local_mean + (local_variance / (local_variance + noise_variance)) * (image - local_mean)
+    return np.uint8(np.clip(result, 0, 255))
 
 def lee_filter(image, window_size=7, sigma=30):
     """
@@ -206,6 +284,9 @@ def frost_filter(image, window_size=7, damping_factor=2.0):
     pad_size = window_size // 2
     padded = np.pad(image, pad_size, mode='reflect')
     restored = np.zeros_like(image, dtype=np.float64)
+
+    rows, cols = image.shape
+    restored = np.zeros_like(image, dtype=np.float64)
     
     # Create distance kernel
     kernel_size = window_size
@@ -213,8 +294,7 @@ def frost_filter(image, window_size=7, damping_factor=2.0):
     y, x = np.ogrid[-center:center+1, -center:center+1]
     distance = np.sqrt(x**2 + y**2)
     
-    # Process each pixel
-    rows, cols = image.shape
+    # Process using convolution
     for i in range(rows):
         for j in range(cols):
             # Extract local window
@@ -233,6 +313,76 @@ def frost_filter(image, window_size=7, damping_factor=2.0):
             restored[i, j] = np.sum(window * kernel)
     
     return np.uint8(restored)
+
+def notch_filter(image, freq_cutoff=0.1):
+    """
+    Removes periodic noise using a notch filter in frequency domain.
+    
+    Args:
+    - image: Input grayscale image.
+    - freq_cutoff: Cutoff frequency for removing periodic noise.
+    
+    Returns:
+    - Restored image.
+    """
+    dft = np.fft.fft2(image)
+    dft_shift = np.fft.fftshift(dft)
+    
+    rows, cols = image.shape
+    crow, ccol = rows // 2, cols // 2  # Center
+    
+    # Create a mask with a notch at the center
+    mask = np.ones((rows, cols), dtype=np.uint8)
+    mask[crow-int(freq_cutoff*rows):crow+int(freq_cutoff*rows), 
+         ccol-int(freq_cutoff*cols):ccol+int(freq_cutoff*cols)] = 0
+    
+    # Apply mask and inverse FFT
+    dft_shift_filtered = dft_shift * mask
+    dft_inverse = np.fft.ifftshift(dft_shift_filtered)
+    restored_image = np.fft.ifft2(dft_inverse)
+    
+    return np.abs(restored_image).astype(np.uint8)
+
+def bandpass_filter(image, low_cutoff=0.05, high_cutoff=0.15):
+    rows, cols = image.shape
+    crow, ccol = rows // 2, cols // 2
+    
+    # Create a bandpass mask
+    mask = np.zeros((rows, cols), dtype=np.float32)
+    for u in range(rows):
+        for v in range(cols):
+            d = np.sqrt((u - crow)**2 + (v - ccol)**2)
+            if low_cutoff * crow < d < high_cutoff * crow:
+                mask[u, v] = 1
+    
+    # Apply mask in frequency domain
+    dft = np.fft.fft2(image)
+    dft_shift = np.fft.fftshift(dft)
+    filtered_dft = dft_shift * mask
+    dft_inverse = np.fft.ifftshift(filtered_dft)
+    restored_image = np.fft.ifft2(dft_inverse)
+    
+    return np.abs(restored_image).astype(np.uint8)
+
+def butterworth_filter(image, cutoff=0.1, order=2):
+    rows, cols = image.shape
+    crow, ccol = rows // 2, cols // 2
+    
+    # Create Butterworth mask
+    x = np.arange(-ccol, ccol)
+    y = np.arange(-crow, crow)
+    X, Y = np.meshgrid(x, y)
+    distance = np.sqrt(X**2 + Y**2)
+    mask = 1 / (1 + (distance / (cutoff * crow))**(2 * order))
+    
+    # Apply mask in frequency domain
+    dft = np.fft.fft2(image)
+    dft_shift = np.fft.fftshift(dft)
+    filtered_dft = dft_shift * mask
+    dft_inverse = np.fft.ifftshift(filtered_dft)
+    restored_image = np.fft.ifft2(dft_inverse)
+    
+    return np.abs(restored_image).astype(np.uint8)
 
 
 def extract_chain_code(image, direction_type='8_direction'):
