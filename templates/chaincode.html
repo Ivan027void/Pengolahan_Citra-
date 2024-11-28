@@ -3,11 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Histogram Equalization</title>
+    <title>Chain Code Comparison</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='styles.css') }}"
     />
+    <style>
+      /* Add this to your styles.css file */
+
+      .output-details, .comparison-result {
+        margin-top: 20px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .output-details h3, .comparison-result h3 {
+        font-size: 1.5em;
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      .output-details p, .comparison-result p {
+        font-size: 1.2em;
+        margin: 5px 0;
+        line-height: 1.5;
+        color: #555;
+      }
+
+      .output-details strong, .comparison-result strong {
+        color: #007BFF;
+        font-weight: bold;
+      }
+
+      .comparison-result p {
+        text-align: center;
+      }
+
+      .comparison-result strong {
+        font-size: 1.4em;
+      }
+</style>
   </head>
   <body>
     <header>
@@ -31,7 +69,6 @@
             <a href="/Image_Interpolation">Image Interpolation</a>
             <a href="/Restoration">Image Restoration</a>
             <a href="/Chaincode">Chain Code Comparison</a>
-            <!-- Add other feature links here -->
           </div>
         </div>
       </nav>
@@ -39,62 +76,45 @@
 
     <section class="content">
       <div class="centered-title">
-        <h2>Histogram Equalization</h2>
+        <h2>Chain Code Comparison</h2>
       </div>
 
       <div class="form-container">
         <form
-          action="/Histogram_Equal"
+          action="/Chaincode"
           method="post"
           enctype="multipart/form-data"
         >
-          <label for="file">Upload Image:</label>
-          <input type="file" name="file" accept="image/*" />
+          <label for="file1">Upload Image 1:</label>
+          <input type="file" name="file1" accept="image/*" required />
+          <label for="file2">Upload Image 2:</label>
+          <input type="file" name="file2" accept="image/*" required />
 
-          <p>Choose Image Mode:</p>
-          <div class="radio-container">
-            <input
-              type="radio"
-              id="rgb"
-              name="color_mode"
-              value="rgb"
-              checked
-            />
-            <label for="rgb">RGB</label>
-            <input
-              type="radio"
-              id="grayscale"
-              name="color_mode"
-              value="grayscale"
-            />
-            <label for="grayscale">Grayscale</label>
-          </div>
-
-          <button type="submit" class="btn">Upload</button>
+          <button type="submit" class="btn">Compare</button>
         </form>
       </div>
 
-      {% if original_image %}
+      {% if image1 and image2 %}
       <div class="output-container">
         <div class="output-image">
-          <h3>Original Image</h3>
-          <img
-            src="{{ url_for('static', filename='uploads/' + original_image.split('/')[-1]) }}"
-            alt="Original Image"
-            width="400"
-          />
+          <h3>Uploaded Images 1</h3>
+          <img src="{{ image1 }}" alt="Image 1" width="400" />
         </div>
         <div class="output-image">
-          <h3>Original Histogram</h3>
-          <img src="{{ original_hist }}" alt="Original Histogram" />
+          <h3>Uploaded Images 1</h3>
+          <img src="{{ image2 }}" alt="Image 2" width="400" />
         </div>
-        <div class="output-image">
-          <h3>Equalized Image</h3>
-          <img src="{{ equalized_image }}" alt="Equalized Image" />
+        <div class="output-details">
+          <h3>Chain Codes</h3>
+          <p><strong>Image 1 Chain Code:</strong> {{ chain_code1 }}</p>
         </div>
-        <div class="output-image">
-          <h3>Equalized Histogram</h3>
-          <img src="{{ equalized_hist }}" alt="Equalized Histogram" />
+        <div class="output-details">
+          <h3>Chain Codes</h3>
+          <p><strong>Image 2 Chain Code:</strong> {{ chain_code2 }}</p>
+        </div>
+        <div class="comparison-result">
+          <h3>Comparison Result</h3>
+          <p>Are the images similar? <strong>{{ 'Yes' if are_similar else 'No' }}</strong></p>
         </div>
       </div>
       {% endif %}

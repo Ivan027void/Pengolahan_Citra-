@@ -234,6 +234,75 @@ def frost_filter(image, window_size=7, damping_factor=2.0):
     
     return np.uint8(restored)
 
+#### fitur chain code
+def extract_chain_code(image):
+    # Convert image to grayscale and binarize it
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, binary = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY)
+
+    # Find contours
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Get chain code for the largest contour
+    chain_code = []
+    if len(contours) > 0:
+        largest_contour = max(contours, key=cv2.contourArea)
+        for i in range(len(largest_contour) - 1):
+            dx = largest_contour[i + 1][0][0] - largest_contour[i][0][0]
+            dy = largest_contour[i + 1][0][1] - largest_contour[i][0][1]
+            if dx == 1 and dy == 0: chain_code.append(0)  # Right
+            elif dx == 1 and dy == -1: chain_code.append(1)  # Top-right
+            elif dx == 0 and dy == -1: chain_code.append(2)  # Top
+            elif dx == -1 and dy == -1: chain_code.append(3)  # Top-left
+            elif dx == -1 and dy == 0: chain_code.append(4)  # Left
+            elif dx == -1 and dy == 1: chain_code.append(5)  # Bottom-left
+            elif dx == 0 and dy == 1: chain_code.append(6)  # Bottom
+            elif dx == 1 and dy == 1: chain_code.append(7)  # Bottom-right
+    return chain_code
+
+@app.route('/Chaincode', methods=['GET', 'POST'])
+def chain_code_page():
+    if request.method == 'POST':
+        if 'file1' not in request.files or 'file2' not in request.files:
+            return redirect(request.url)
+
+        file1 = request.files['file1']
+        file2 = request.files['file2']
+
+        if file1.filename == '' or file2.filename == '':
+            return redirect(request.url)
+        
+        if file1 and file2:
+            # Save both files
+            filename1 = save_uploaded_file(file1, app.config['UPLOAD_FOLDER'])
+            filename2 = save_uploaded_file(file2, app.config['UPLOAD_FOLDER'])
+
+            filepath1 = os.path.join(app.config['UPLOAD_FOLDER'], filename1)
+            filepath2 = os.path.join(app.config['UPLOAD_FOLDER'], filename2)
+
+            # Read images
+            image1 = cv2.imread(filepath1)
+            image2 = cv2.imread(filepath2)
+
+            # Extract chain codes
+            chain_code1 = extract_chain_code(image1)
+            chain_code2 = extract_chain_code(image2)
+
+            # Compare chain codes
+            are_similar = chain_code1 == chain_code2
+
+            # Convert images to base64 for display
+            image1_data = convert_image_to_base64(image1)
+            image2_data = convert_image_to_base64(image2)
+
+            return render_template('chaincode.html',
+                                   image1=f"data:image/png;base64,{image1_data}",
+                                   image2=f"data:image/png;base64,{image2_data}",
+                                   chain_code1=chain_code1,
+                                   chain_code2=chain_code2,
+                                   are_similar=are_similar)
+    return render_template('chaincode.html')
+
 
 # Function to resize image with interpolation
 def resize_image_with_interpolation(image, scale_factor, interpolation_method):
