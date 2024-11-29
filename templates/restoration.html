@@ -110,17 +110,11 @@
         } else if (noiseType === "gaussian") {
           restorationOptions += `
             <input type="radio" id="gaussian" name="restoration_method" value="gaussian" checked />
-            <label for="gaussian">Gaussian Filter</label>
-            <input type="radio" id="bilateral" name="restoration_method" value="bilateral" />
-            <label for="bilateral">Bilateral Filter</label>
-            <input type="radio" id="wiener" name="restoration_method" value="wiener" />
-            <label for="wiener">Wiener Filter</label>`;
+            <label for="gaussian">Gaussian Filter</label>`;
         } else if (noiseType === "speckle") {
           restorationOptions += `
             <input type="radio" id="median" name="restoration_method" value="median" checked />
             <label for="median">Median Filter</label>
-            <input type="radio" id="lee" name="restoration_method" value="lee" />
-            <label for="lee">Lee Filter</label>
             <input type="radio" id="frost" name="restoration_method" value="frost" />
             <label for="frost">Frost Filter</label>`;
         } else if (noiseType === "periodic") {
