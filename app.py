@@ -11,6 +11,9 @@ from PIL import Image
 from skimage.metrics import structural_similarity as ssim
 import matplotlib.pyplot as plt
 from scipy.ndimage import convolve
+from collections import Counter, defaultdict
+import heapq
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 
@@ -50,6 +53,113 @@ def home():
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+# Huffman Node class
+class HuffmanNode:
+    def __init__(self, char, freq):
+        self.char = char
+        self.freq = freq
+        self.left = None
+        self.right = None
+
+    def __lt__(self, other):
+        return self.freq < other.freq
+
+# Build Huffman Tree
+def build_huffman_tree(text):
+    freq = Counter(text)
+    priority_queue = [HuffmanNode(char, freq) for char, freq in freq.items()]
+    heapq.heapify(priority_queue)
+
+    while len(priority_queue) > 1:
+        left = heapq.heappop(priority_queue)
+        right = heapq.heappop(priority_queue)
+        merged = HuffmanNode(None, left.freq + right.freq)
+        merged.left = left
+        merged.right = right
+        heapq.heappush(priority_queue, merged)
+
+    return priority_queue[0]
+
+# Generate Huffman codes
+def generate_huffman_codes(node, code="", codes={}):
+    if not node:
+        return
+    if node.char:
+        codes[node.char] = code
+    generate_huffman_codes(node.left, code + "0", codes)
+    generate_huffman_codes(node.right, code + "1", codes)
+    return codes
+
+def calculate_tree_depth(node):
+    if not node:
+        return 0
+    return 1 + max(calculate_tree_depth(node.left), calculate_tree_depth(node.right))
+
+
+def draw_huffman_tree(node, x=0, y=0, x_offset=10, y_offset=1.5, ax=None, level=0, max_depth=1):
+    if node is None:
+        return
+    
+    # Set node color and style
+    box_color = 'mediumslateblue' if node.char else 'thistle'
+    text_color = 'white' if node.char else 'black'
+    
+    # Draw the node
+    ax.text(x, y, f"{node.char or ''}\n{node.freq}", ha='center', va='center', 
+            bbox=dict(facecolor=box_color, edgecolor='black', boxstyle='round,pad=0.5'),
+            color=text_color)
+    
+    # Adjust spacing based on the level and depth
+    current_offset = x_offset / (2 ** level)
+    
+    # Draw left child
+    if node.left:
+        ax.plot([x, x - current_offset], [y, y - y_offset], 'k-', lw=1.5)
+        draw_huffman_tree(node.left, x - current_offset, y - y_offset, x_offset, y_offset, ax, level + 1, max_depth)
+    
+    # Draw right child
+    if node.right:
+        ax.plot([x, x + current_offset], [y, y - y_offset], 'k-', lw=1.5)
+        draw_huffman_tree(node.right, x + current_offset, y - y_offset, x_offset, y_offset, ax, level + 1, max_depth)
+
+# Flask route
+@app.route('/Huffman', methods=['GET', 'POST'])
+def huffman_page():
+    if request.method == 'POST':
+        text = request.form.get('input_text', '')
+        if not text:
+            return redirect(request.url)
+        
+        # Build Huffman Tree
+        root = build_huffman_tree(text)
+        codes = generate_huffman_codes(root)
+
+        # Calculate tree depth
+        depth = calculate_tree_depth(root)
+
+        # Create and configure tree visualization
+        fig, ax = plt.subplots(figsize=(depth * 2.5, depth * 1.5))  # Dynamically adjust figure size
+        ax.axis('off')  # Turn off axis lines and labels
+        draw_huffman_tree(root, x=0, y=0, x_offset=depth * 2, y_offset=1.5, ax=ax, max_depth=depth)
+        plt.tight_layout()
+
+        # Save visualization to a buffer
+        img_buffer = BytesIO()
+        plt.savefig(img_buffer, format='png', bbox_inches='tight')
+        img_buffer.seek(0)
+        tree_image_base64 = base64.b64encode(img_buffer.read()).decode('utf-8')
+        plt.close(fig)
+
+        # Render the Huffman page with results
+        return render_template('huffman.html', 
+                               input_text=text, 
+                               codes=codes,
+                               frequencies=dict(Counter(text)),
+                               tree_image=tree_image_base64)
+
+    # Render the initial Huffman page
+    return render_template('huffman.html')
 
 @app.route('/Restoration', methods=['GET', 'POST'])
 def restoration_page():
@@ -91,7 +201,7 @@ def restoration_page():
                 if restoration_method == 'median':
                     restored_image = cv2.medianBlur(noisy_image, 3)
                 elif restoration_method == 'rank_order':
-                    restored_image = rank_order_filter(noisy_image, kernel_size=3)
+                    restored_image = rank_order_filter(noisy_image, kernel_size=3,rank=2)
                 elif restoration_method == 'outlier':
                     restored_image = outlier_method(noisy_image, threshold=50)
                 elif restoration_method == 'lowpass':
@@ -109,8 +219,8 @@ def restoration_page():
             elif noise_type == 'speckle':
                 if restoration_method == 'median':
                     restored_image = cv2.medianBlur(noisy_image, 5)
-                elif restoration_method == 'lee': # the best
-                    restored_image = lee_filter(noisy_image)
+                # elif restoration_method == 'lee': # the best
+                #     restored_image = lee_filter(noisy_image)
                 elif restoration_method == 'frost':
                     restored_image = frost_filter(noisy_image)
             
@@ -180,8 +290,39 @@ def median_filter(image, kernel_size=3):
     """
     return cv2.medianBlur(image, kernel_size)
 
-def rank_order_filter(image, kernel_size):
-    return cv2.medianBlur(image, kernel_size)  # Simplified version
+def rank_order_filter(image, kernel_size, rank):
+    """
+    Terapkan rank order filter pada citra.
+    
+    Parameters:
+    - image: Input citra (grayscale).
+    - kernel_size: Ukuran kernel filter (harus ganjil).
+    - rank: Posisi rank (0 untuk minimum, k/2 untuk median, k-1 untuk maksimum, dsb.).
+    
+    Returns:
+    - filtered_image: Citra hasil setelah filter diterapkan.
+    """
+    if kernel_size % 2 == 0:
+        raise ValueError("Kernel size must be odd.")
+    
+    # Padding untuk menghindari masalah di tepi
+    pad_size = kernel_size // 2
+    padded_image = np.pad(image, pad_size, mode='reflect')
+    
+    # Output citra setelah filter
+    filtered_image = np.zeros_like(image)
+    
+    # Terapkan rank order filter
+    for i in range(image.shape[0]):
+        for j in range(image.shape[1]):
+            # Ekstrak neighborhood
+            neighborhood = padded_image[i:i+kernel_size, j:j+kernel_size].flatten()
+            
+            # Urutkan dan ambil nilai berdasarkan rank
+            neighborhood.sort()
+            filtered_image[i, j] = neighborhood[rank]
+    
+    return filtered_image.astype(np.uint8)
 
 def outlier_method(image, threshold):
     result = np.copy(image)
