@@ -82,7 +82,9 @@ def build_huffman_tree(text):
     return priority_queue[0]
 
 # Generate Huffman codes
-def generate_huffman_codes(node, code="", codes={}):
+def generate_huffman_codes(node, code="", codes=None):
+    if codes is None:
+        codes = {}  # Create a new dictionary for codes
     if not node:
         return
     if node.char:
@@ -90,6 +92,7 @@ def generate_huffman_codes(node, code="", codes={}):
     generate_huffman_codes(node.left, code + "0", codes)
     generate_huffman_codes(node.right, code + "1", codes)
     return codes
+
 
 def calculate_tree_depth(node):
     if not node:
